@@ -5,8 +5,8 @@ const notePresets = require("scripts/note-presets");
 
 const COLOR_OK = "#007AFF";
 
-const SECTION_PRESETS = 2;
-const SECTION_TIME = 3;
+const SECTION_NOTE = 1;
+const SECTION_TIME = 2;
 
 let selectedAt = new Date();
 let saveCallback = null;
@@ -33,24 +33,41 @@ function presetRows() {
   });
 }
 
-function buildListData() {
+function noteSectionRows() {
+  const rows = [];
   const presets = presetRows();
-  const presetSection =
-    presets.length > 0
-      ? { title: "常用备注", rows: presets }
-      : {
-          title: "常用备注",
-          rows: [
-            {
-              label: {
-                text: "暂无预设，可在首页「设置」中添加",
-                textColor: $color("secondaryLabel")
-              },
-              disabled: true
-            }
-          ]
-        };
+  if (presets.length > 0) {
+    presets.forEach(function(row) {
+      rows.push(row);
+    });
+  } else {
+    rows.push({
+      label: {
+        text: "暂无预设，可在首页「设置」中添加",
+        textColor: $color("secondaryLabel")
+      },
+      disabled: true
+    });
+  }
+  rows.push({
+    type: "input",
+    props: {
+      id: "exp-note",
+      type: $kbType.default,
+      placeholder: "可空，或点上方预设",
+      font: $font(17),
+      bgcolor: $color("clear")
+    },
+    layout: function(make, view) {
+      make.left.right.inset(16);
+      make.top.bottom.inset(8);
+      make.height.greaterThanOrEqualTo(36);
+    }
+  });
+  return rows;
+}
 
+function buildListData() {
   return [
     {
       title: "金额",
@@ -80,25 +97,8 @@ function buildListData() {
     },
     {
       title: "备注",
-      rows: [
-        {
-          type: "input",
-          props: {
-            id: "exp-note",
-            type: $kbType.default,
-            placeholder: "可空，或点下方预设",
-            font: $font(17),
-            bgcolor: $color("clear")
-          },
-          layout: function(make, view) {
-            make.left.right.inset(16);
-            make.top.bottom.inset(8);
-            make.height.greaterThanOrEqualTo(36);
-          }
-        }
-      ]
+      rows: noteSectionRows()
     },
-    presetSection,
     {
       title: "时间",
       rows: [
@@ -144,22 +144,34 @@ function buildListData() {
       title: "操作",
       rows: [
         {
-          type: "button",
-          props: {
-            title: "确认记账",
-            bgcolor: $color("clear"),
-            titleColor: $color(COLOR_OK),
-            font: $font("bold", 17)
+          type: "view",
+          props: { bgcolor: $color("clear"), selectable: false },
+          layout: function(make) {
+            make.height.equalTo(56);
+            make.width.equalTo();
           },
-          layout: function(make, view) {
-            make.center.equalTo(view.super);
-            make.height.equalTo(44);
-          },
-          events: {
-            tapped: function() {
-              submit();
+          views: [
+            {
+              type: "button",
+              props: {
+                title: "确认记账",
+                bgcolor: $color(COLOR_OK),
+                titleColor: $color("#FFFFFF"),
+                font: $font("bold", 17),
+                radius: 12,
+                clipsToBounds: true
+              },
+              layout: function(make, view) {
+                make.left.right.inset(0);
+                make.top.bottom.inset(4);
+              },
+              events: {
+                tapped: function() {
+                  submit();
+                }
+              }
             }
-          }
+          ]
         }
       ]
     }
@@ -205,7 +217,7 @@ function submit() {
 }
 
 function onListSelect(indexPath) {
-  if (indexPath.section === SECTION_PRESETS) {
+  if (indexPath.section === SECTION_NOTE) {
     const list = $("exp-form-list");
     const row = list && list.object(indexPath);
     if (!row || row.disabled) return;
