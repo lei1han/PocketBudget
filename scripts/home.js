@@ -116,7 +116,8 @@ function buildRows() {
     { label: { text: "消费明细", textColor: $color("label") }, value: { text: "›", textColor: $color("tertiaryLabel") } },
     { label: { text: "分期", textColor: $color("label") }, value: { text: "›", textColor: $color("tertiaryLabel") } },
     { label: { text: "结余一览", textColor: $color("label") }, value: { text: "›", textColor: $color("tertiaryLabel") } },
-    { label: { text: "导出 / 导入", textColor: $color("label") }, value: { text: "›", textColor: $color("tertiaryLabel") } }
+    { label: { text: "导出 / 导入", textColor: $color("label") }, value: { text: "›", textColor: $color("tertiaryLabel") } },
+    { label: { text: "设置", textColor: $color("label") }, value: { text: "›", textColor: $color("tertiaryLabel") } }
   ];
   return [
     { title: "本月总览", rows: overview },
@@ -208,6 +209,10 @@ function handleAction(key) {
     return io.showMenu(function() {
       refresh();
     });
+  }
+  if (key === "settings") {
+    const settings = require("scripts/settings");
+    return settings.open();
   }
 }
 
@@ -346,7 +351,7 @@ function render() {
         events: {
           didSelect: function(sender, indexPath) {
             if (indexPath.section !== 1) return;
-            const keys = ["add-expense", "set-budget", "expenses", "installments", "surplus", "io"];
+            const keys = ["add-expense", "set-budget", "expenses", "installments", "surplus", "io", "settings"];
             handleAction(keys[indexPath.row]);
           }
         }
