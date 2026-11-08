@@ -1,0 +1,18 @@
+{
+  "info": {
+    "name": "PocketBudget",
+    "url": "",
+    "version": "1.0.3",
+    "author": "雷哥",
+    "website": "",
+    "types": 0
+  },
+  "settings": {
+    "minSDKVer": "2.0.0",
+    "minOSVer": "14.0.0",
+    "idleTimerDisabled": false,
+    "autoKeyboardEnabled": true,
+    "keyboardToolbarEnabled": true,
+    "rotateDisabled": false
+  }
+}
