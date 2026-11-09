@@ -1,4 +1,9 @@
 const notePresets = require("scripts/note-presets");
+const update = require("scripts/update");
+
+const SECTION_PRESETS = 0;
+const SECTION_APP = 1;
+const BOX_ASSET_LABEL = "PocketBudget.box";
 
 let presets = [];
 
@@ -35,6 +40,32 @@ function buildData() {
         }
       },
       rows: rows
+    },
+    {
+      title: "应用",
+      footer: {
+        type: "label",
+        props: {
+          height: 72,
+          text:
+            "从 GitHub Releases 检查更新并安装 " +
+            BOX_ASSET_LABEL +
+            "；预算数据仍在本地，不会上传。",
+          textColor: $color("secondaryLabel"),
+          font: $font(13),
+          lines: 0
+        }
+      },
+      rows: [
+        {
+          label: { text: "检查更新", textColor: $color("label") },
+          value: {
+            text: "v" + update.localVersion(),
+            textColor: $color("secondaryLabel")
+          },
+          action: "check-update"
+        }
+      ]
     }
   ];
 }
@@ -174,10 +205,17 @@ function open() {
         events: {
           didSelect: function(sender, indexPath) {
             const row = sender.object(indexPath);
-            if (!row || row.empty) return;
+            if (!row) return;
+            if (indexPath.section === SECTION_APP) {
+              if (row.action === "check-update") update.check();
+              return;
+            }
+            if (indexPath.section !== SECTION_PRESETS) return;
+            if (row.empty) return;
             promptEdit(indexPath.row);
           },
           swipeEnabled: function(sender, indexPath) {
+            if (indexPath.section !== SECTION_PRESETS) return false;
             const row = sender.object(indexPath);
             return row && !row.empty;
           }

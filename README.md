@@ -16,7 +16,7 @@ PocketBudget — 本地个人月度预算：设当月预算、记消费、分期
 - 展示：当月预算、已占用（消费 / 分期）、剩余、本月结余、累计结余；顶部有**预算占用进度条**（超支警示色并显示 >100%/超支金额；预算为 0 时显示 0% 或「未设预算」，不除零）
 - **记一笔**：insetGrouped 分组表单（金额 → 备注区含常用备注在上+输入在下 → 时间 → 主色确认按钮）；常用备注来自「设置」，点选填入备注框；时间默认当前，可改历史时间
 - **设预算**：仅可改**当月**；历史月预算锁定
-- **消费明细 / 分期 / 结余一览 / 导出导入 / 设置**：进入对应功能；**设置**中可增删改常用备注（本地 `data/note-presets-v1.json`）
+- **消费明细 / 分期 / 结余一览 / 导出导入 / 设置**：进入对应功能；**设置**中可增删改常用备注（本地 `data/note-presets-v1.json`），**检查更新**从 [GitHub Releases](https://github.com/lei1han/PocketBudget/releases) 拉取最新 `PocketBudget.box` 并安装（无需 Token；不自动检查，需手动点选）
 
 ### 预算沿用
 - 进入新月份若未设预算：自动沿用上月金额并写入本月
@@ -79,9 +79,24 @@ PocketBudget — 本地个人月度预算：设当月预算、记消费、分期
 
 附加：导出 JSON 后清空或改数据，再导入，数据应恢复。
 
+## 发布新版本（GitHub Release）
+
+供维护者与 App 内「检查更新」使用；仓库已公开，无需 Token。
+
+1. 在 `config.json` 的 `info.version` 写入新版本号（如 `1.0.6`），与将要打的 Git 标签一致（可带或不带 `v` 前缀，建议 `v1.0.6`）。
+2. 在仓库根目录打包安装包（与 CI/本地一致）：
+   ```bash
+   zip -r PocketBudget.box main.js config.json README.md assets scripts -x "*.git*"
+   ```
+3. 提交并推送源码到 `main`（或合并 PR）。
+4. 在 GitHub：**Releases → Draft a new release** → 选择标签 `v1.0.6`（或新建标签）→ 填写说明 → **上传附件** `PocketBudget.box`（文件名须与 App 内查找的一致）。
+5. 发布 Release 后，用户在 JSBox 中打开 PocketBudget → **设置 → 检查更新** → 若有新版本则下载并通过 `$addin.save` 覆盖安装，完成后可 `$addin.restart()` 重启。
+
+注意：更新仅替换脚本安装包，不会上传或覆盖 `data/budget-v1.json` 等本地预算数据。
+
 ## 本版不做
 
-分类/图表、多账户币种、云同步、自动导入、小组件/捷径。
+分类/图表、多账户币种、预算数据云同步、自动导入、小组件/捷径。
 
 ## 目录结构
 
@@ -101,6 +116,7 @@ jsbox-budget/           # 源码
     expense-form.js
     note-presets.js
     settings.js
+    update.js
     expenses.js
     installments.js
     surplus.js

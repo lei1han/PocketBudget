@@ -126,4 +126,13 @@ assert(v.ok, "validate");
 v = store.validateImport({ version: 2, budgets: [], expenses: [], installments: [], installmentItems: [] });
 assert(!v.ok, "bad ver");
 
+assert(util.compareSemver("1.0.6", "1.0.5") > 0, "semver gt");
+assert(util.compareSemver("v1.0.5", "1.0.5") === 0, "semver v");
+assert(util.compareSemver("1.0.0", "1.0.1") < 0, "semver lt");
+
+const upd = require("scripts/update");
+const fake = { tag_name: "v2.0.0", assets: [{ name: "PocketBudget.box", browser_download_url: "https://example.com/a.box" }] };
+assert(upd.versionFromRelease(fake) === "2.0.0", "release ver");
+assert(upd.findBoxAsset(fake).browser_download_url.indexOf("example.com") > 0, "find asset");
+
 console.log("ALL TESTS PASSED");
