@@ -474,33 +474,11 @@ function render() {
                       font: $font("semibold", 17)
                     },
                     layout: function(make, view) {
-                      make.left.top.bottom.equalTo(view.super);
-                      make.right.equalTo(view.super.centerX).offset(-6);
+                      make.left.right.top.bottom.equalTo(view.super);
                     },
                     events: {
                       tapped: function() {
                         handleAction("add-expense");
-                      }
-                    }
-                  },
-                  {
-                    type: "button",
-                    props: {
-                      title: "消费明细",
-                      bgcolor: $color("systemBackground"),
-                      borderWidth: 1,
-                      borderColor: $color("opaqueSeparator"),
-                      titleColor: $color("label"),
-                      radius: BTN_RADIUS,
-                      font: $font("semibold", 17)
-                    },
-                    layout: function(make, view) {
-                      make.right.top.bottom.equalTo(view.super);
-                      make.left.equalTo(view.super.centerX).offset(6);
-                    },
-                    events: {
-                      tapped: function() {
-                        handleAction("expenses");
                       }
                     }
                   }
