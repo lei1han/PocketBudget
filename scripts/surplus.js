@@ -2,7 +2,8 @@ const util = require("scripts/util");
 const calc = require("scripts/calc");
 const state = require("scripts/state");
 
-const MONTH_ROW_H = 58;
+const SUMMARY_CARD_H = 96;
+const MONTH_ROW_H = 88;
 const CARD_RADIUS = 14;
 
 function moneyColor(n) {
@@ -23,14 +24,22 @@ function formatSignedSurplus(n) {
   return prefix + util.formatMoney(x);
 }
 
+function formatSignedShort(n) {
+  const x = util.roundMoney(n || 0);
+  const prefix = x > 0 ? "+" : x < 0 ? "-" : "";
+  const abs = Math.abs(x);
+  const plain = abs % 1 === 0 ? String(Math.round(abs)) : abs.toFixed(2);
+  return prefix + plain;
+}
+
 function monthDetailText(r) {
   const budget = "预算 " + formatAmountShort(r.budget);
   const spend =
     r.isCurrent
       ? "占用 " + formatAmountShort(r.occupied)
       : "支出 " + formatAmountShort(r.expense);
-  const surplus = "结余 " + formatSignedSurplus(r.surplus);
-  return budget + " / " + spend + " / " + surplus;
+  const surplus = "结余 " + formatSignedShort(r.surplus);
+  return budget + "　" + spend + "　" + surplus;
 }
 
 function buildMonthRows() {
@@ -61,20 +70,18 @@ const monthListTemplate = {
   views: [
     {
       type: "label",
-      props: { id: "ym", font: $font("semibold", 16) },
-      layout: function(make, view) {
-        make.left.inset(16);
-        make.centerY.equalTo(view.super);
-        make.width.equalTo(78);
+      props: { id: "ym", font: $font("semibold", 17), lines: 1 },
+      layout: function(make) {
+        make.left.right.inset(14);
+        make.top.inset(18);
       }
     },
     {
       type: "label",
-      props: { id: "detail", font: $font(13), align: $align.right, lines: 2 },
-      layout: function(make, view) {
-        make.right.inset(14);
-        make.left.equalTo(98);
-        make.centerY.equalTo(view.super);
+      props: { id: "detail", font: $font(13), lines: 2 },
+      layout: function(make) {
+        make.left.right.inset(14);
+        make.bottom.inset(18);
       }
     }
   ]
@@ -102,11 +109,6 @@ function refreshView() {
   }
 }
 
-function openSettings() {
-  const settings = require("scripts/settings");
-  settings.open(refreshView);
-}
-
 function open() {
   const current = util.currentYearMonth();
   const cum = calc.cumulativeSurplus(state.getData(), current);
@@ -115,15 +117,7 @@ function open() {
   $ui.push({
     props: {
       title: "按月统计",
-      bgcolor: $color("systemGroupedBackground"),
-      navButtons: [
-        {
-          icon: "gear",
-          handler: function() {
-            openSettings();
-          }
-        }
-      ]
+      bgcolor: $color("systemGroupedBackground")
     },
     views: [
       {
@@ -144,7 +138,7 @@ function open() {
             layout: function(make) {
               make.left.right.inset(16);
               make.top.inset(8);
-              make.height.equalTo(76);
+              make.height.equalTo(SUMMARY_CARD_H);
             },
             views: [
               {
@@ -152,7 +146,7 @@ function open() {
                 props: {
                   id: "surplus-cumulative",
                   text: "累计结余 " + formatSignedSurplus(cum.cumulative),
-                  font: $font("semibold", 20),
+                  font: $font("bold", 22),
                   textColor: moneyColor(cum.cumulative),
                   align: $align.center
                 },

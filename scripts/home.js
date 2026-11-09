@@ -13,6 +13,9 @@ const COLOR_WARN = "#D32F2F";
 const COLOR_BTN_PRIMARY = "#2C2C2E";
 const PREVIEW_LIMIT = 4;
 const PREVIEW_ROW_H = 58;
+const PREVIEW_HEADER_H = 42;
+const PREVIEW_MORE_H = 52;
+const SECONDARY_BTN_GAP = 8;
 const CARD_RADIUS = 14;
 const BTN_RADIUS = 12;
 
@@ -75,7 +78,8 @@ function surplusTapLine(snap) {
     "本月结余 " +
     formatSignedSurplus(snap.monthSurplus) +
     " · 累计 " +
-    formatSignedSurplus(snap.cumulative)
+    formatSignedSurplus(snap.cumulative) +
+    " ›"
   );
 }
 
@@ -195,10 +199,44 @@ function applyPreview() {
   list.data = buildPreviewListData(items);
   const height = previewListHeight(items.length);
   list.remakeLayout(function(make) {
-    make.left.right.inset(16);
-    make.top.equalTo($("home-preview-header").bottom).offset(6);
+    make.left.right.equalTo();
+    make.top.equalTo($("home-preview-top-sep").bottom);
     make.height.equalTo(height);
   });
+  const bottomSep = $("home-preview-bottom-sep");
+  if (bottomSep) {
+    bottomSep.remakeLayout(function(make) {
+      make.left.right.equalTo();
+      make.top.equalTo($("home-preview-list").bottom);
+      make.height.equalTo(0.33);
+    });
+  }
+  const more = $("home-preview-more");
+  if (more) {
+    more.remakeLayout(function(make) {
+      make.left.right.bottom.equalTo();
+      make.top.equalTo($("home-preview-bottom-sep").bottom);
+      make.height.equalTo(PREVIEW_MORE_H);
+    });
+  }
+  const card = $("home-preview-card");
+  if (card) {
+    card.remakeLayout(function(make) {
+      make.left.right.inset(16);
+      make.top.equalTo($("home-actions").bottom).offset(28);
+    });
+  }
+  const secondary = $("home-secondary-actions");
+  if (secondary) {
+    secondary.remakeLayout(function(make) {
+      make.left.right.inset(16);
+      make.top.equalTo($("home-preview-card").bottom).offset(28);
+      make.height.equalTo(44);
+      make.bottom.inset(24);
+    });
+  }
+  const content = $("home-content");
+  if (content && content.layoutIfNeeded) content.layoutIfNeeded();
 }
 
 function refresh() {
@@ -300,15 +338,7 @@ function render() {
   $ui.render({
     props: {
       title: "PocketBudget",
-      bgcolor: $color("systemGroupedBackground"),
-      navButtons: [
-        {
-          icon: "gear",
-          handler: function() {
-            handleAction("settings");
-          }
-        }
-      ]
+      bgcolor: $color("systemGroupedBackground")
     },
     views: [
       {
@@ -479,106 +509,156 @@ function render() {
               {
                 type: "view",
                 props: {
-                  id: "home-preview-header"
+                  id: "home-preview-card",
+                  bgcolor: $color("systemBackground"),
+                  radius: CARD_RADIUS,
+                  clipsToBounds: true
                 },
                 layout: function(make) {
                   make.left.right.inset(16);
-                  make.top.equalTo($("home-actions").bottom).offset(18);
-                  make.height.equalTo(32);
-                },
-                events: {
-                  tapped: function() {
-                    handleAction("expenses");
-                  }
+                  make.top.equalTo($("home-actions").bottom).offset(28);
                 },
                 views: [
                   {
-                    type: "label",
+                    type: "view",
                     props: {
-                      text: "本月明细",
-                      font: $font("bold", 17),
-                      textColor: $color("label")
+                      id: "home-preview-header"
                     },
-                    layout: function(make, view) {
-                      make.left.centerY.equalTo(view.super);
+                    layout: function(make) {
+                      make.left.right.top.equalTo();
+                      make.height.equalTo(PREVIEW_HEADER_H);
+                    },
+                    events: {
+                      tapped: function() {
+                        handleAction("expenses");
+                      }
+                    },
+                    views: [
+                      {
+                        type: "label",
+                        props: {
+                          text: "本月明细",
+                          font: $font("bold", 17),
+                          textColor: $color("label")
+                        },
+                        layout: function(make, view) {
+                          make.left.inset(14);
+                          make.centerY.equalTo(view.super).offset(2);
+                        }
+                      },
+                      {
+                        type: "label",
+                        props: {
+                          text: "›",
+                          font: $font(18),
+                          textColor: $color("tertiaryLabel"),
+                          align: $align.right
+                        },
+                        layout: function(make, view) {
+                          make.right.inset(14);
+                          make.centerY.equalTo(view.super).offset(2);
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    type: "view",
+                    props: {
+                      id: "home-preview-top-sep",
+                      bgcolor: $color("separator"),
+                      alpha: 0.55
+                    },
+                    layout: function(make) {
+                      make.left.right.equalTo();
+                      make.top.equalTo($("home-preview-header").bottom);
+                      make.height.equalTo(0.33);
                     }
                   },
                   {
-                    type: "label",
+                    type: "list",
                     props: {
-                      text: "›",
-                      font: $font(18),
-                      textColor: $color("tertiaryLabel"),
-                      align: $align.right
+                      id: "home-preview-list",
+                      scrollEnabled: false,
+                      separatorStyle: 1,
+                      rowHeight: PREVIEW_ROW_H,
+                      bgcolor: $color("systemBackground"),
+                      template: previewListTemplate,
+                      data: buildPreviewListData(previewItems)
                     },
-                    layout: function(make, view) {
-                      make.right.centerY.equalTo(view.super);
+                    layout: function(make) {
+                      make.left.right.equalTo();
+                      make.top.equalTo($("home-preview-top-sep").bottom);
+                      make.height.equalTo(previewListHeight(previewItems.length));
+                    },
+                    events: {
+                      didSelect: function() {
+                        handleAction("expenses");
+                      }
+                    }
+                  },
+                  {
+                    type: "view",
+                    props: {
+                      id: "home-preview-bottom-sep",
+                      bgcolor: $color("separator"),
+                      alpha: 0.55
+                    },
+                    layout: function(make) {
+                      make.left.right.equalTo();
+                      make.top.equalTo($("home-preview-list").bottom);
+                      make.height.equalTo(0.33);
+                    }
+                  },
+                  {
+                    type: "button",
+                    props: {
+                      id: "home-preview-more",
+                      title: "更多  ›",
+                      bgcolor: $color("clear"),
+                      titleColor: $color(COLOR_OK),
+                      font: $font(16)
+                    },
+                    layout: function(make) {
+                      make.left.right.bottom.equalTo();
+                      make.top.equalTo($("home-preview-bottom-sep").bottom);
+                      make.height.equalTo(PREVIEW_MORE_H);
+                    },
+                    events: {
+                      tapped: function() {
+                        handleAction("expenses");
+                      }
                     }
                   }
                 ]
-              },
-              {
-                type: "list",
-                props: {
-                  id: "home-preview-list",
-                  scrollEnabled: false,
-                  separatorStyle: 1,
-                  rowHeight: PREVIEW_ROW_H,
-                  bgcolor: $color("systemBackground"),
-                  radius: CARD_RADIUS,
-                  clipsToBounds: true,
-                  template: previewListTemplate,
-                  data: buildPreviewListData(previewItems)
-                },
-                layout: function(make) {
-                  make.left.right.inset(16);
-                  make.top.equalTo($("home-preview-header").bottom).offset(6);
-                  make.height.equalTo(previewListHeight(previewItems.length));
-                }
-              },
-              {
-                type: "button",
-                props: {
-                  title: "更多  ›",
-                  bgcolor: $color("clear"),
-                  titleColor: $color(COLOR_OK),
-                  font: $font(16)
-                },
-                layout: function(make) {
-                  make.left.right.inset(16);
-                  make.top.equalTo($("home-preview-list").bottom).offset(4);
-                  make.height.equalTo(40);
-                },
-                events: {
-                  tapped: function() {
-                    handleAction("expenses");
-                  }
-                }
               },
               {
                 type: "view",
                 props: { id: "home-secondary-actions" },
                 layout: function(make) {
                   make.left.right.inset(16);
-                  make.top.equalTo($("home-preview-list").bottom).offset(48);
+                  make.top.equalTo($("home-preview-card").bottom).offset(28);
                   make.height.equalTo(44);
-                  make.bottom.inset(20);
+                  make.bottom.inset(24);
                 },
                 views: [
                   {
                     type: "button",
                     props: {
+                      id: "home-btn-installments",
                       title: "分期",
                       bgcolor: $color("systemBackground"),
                       borderWidth: 1,
                       borderColor: $color("opaqueSeparator"),
                       titleColor: $color("label"),
                       radius: 10,
-                      font: $font(16)
+                      font: $font("medium", 16)
                     },
                     layout: function(make, view) {
                       make.left.top.bottom.equalTo(view.super);
-                      make.right.equalTo(view.super.centerX).offset(-6);
+                      make.width
+                        .equalTo(view.super)
+                        .offset(-2 * SECONDARY_BTN_GAP)
+                        .dividedBy(3);
                     },
                     events: {
                       tapped: function() {
@@ -589,21 +669,50 @@ function render() {
                   {
                     type: "button",
                     props: {
+                      id: "home-btn-budget",
                       title: "预算",
                       bgcolor: $color("systemBackground"),
                       borderWidth: 1,
                       borderColor: $color("opaqueSeparator"),
                       titleColor: $color("label"),
                       radius: 10,
-                      font: $font(16)
+                      font: $font("medium", 16)
                     },
                     layout: function(make, view) {
-                      make.right.top.bottom.equalTo(view.super);
-                      make.left.equalTo(view.super.centerX).offset(6);
+                      make.top.bottom.equalTo(view.super);
+                      make.left
+                        .equalTo($("home-btn-installments").right)
+                        .offset(SECONDARY_BTN_GAP);
+                      make.width.equalTo($("home-btn-installments"));
                     },
                     events: {
                       tapped: function() {
                         handleAction("set-budget");
+                      }
+                    }
+                  },
+                  {
+                    type: "button",
+                    props: {
+                      id: "home-btn-settings",
+                      title: "设置",
+                      bgcolor: $color("systemBackground"),
+                      borderWidth: 1,
+                      borderColor: $color("opaqueSeparator"),
+                      titleColor: $color("label"),
+                      radius: 10,
+                      font: $font("medium", 16)
+                    },
+                    layout: function(make, view) {
+                      make.top.bottom.right.equalTo(view.super);
+                      make.left
+                        .equalTo($("home-btn-budget").right)
+                        .offset(SECONDARY_BTN_GAP);
+                      make.width.equalTo($("home-btn-installments"));
+                    },
+                    events: {
+                      tapped: function() {
+                        handleAction("settings");
                       }
                     }
                   }
