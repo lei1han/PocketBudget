@@ -151,4 +151,15 @@ const gh = {
 };
 assert(upd.parseReleasePayload(gh).tag_name === "v1.0.6", "parse release");
 
+const widgetData = require("scripts/widget-data");
+let m = widgetData.computeRingMetrics({
+  budget: 1000,
+  remaining: 400,
+  occupied: 600,
+  yearMonth: "2026-11"
+});
+assert(Math.abs(m.sweepRatio - 0.4) < 0.001, "widget ratio remain");
+m = widgetData.computeRingMetrics({ budget: 100, remaining: -20, occupied: 120, yearMonth: "2026-11" });
+assert(m.over && m.sweepRatio === 1, "widget over");
+
 console.log("ALL TESTS PASSED");
