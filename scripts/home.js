@@ -12,6 +12,7 @@ const COLOR_OK = "#007AFF";
 const COLOR_WARN = "#D32F2F";
 const COLOR_PRIMARY_BTN = "#1C1C1E";
 const PREVIEW_LIMIT = 4;
+const PREVIEW_ROW_H = 52;
 
 function setDeps(deps) {
   expensesUI = deps.expenses;
@@ -95,98 +96,93 @@ function applyTopCard(snap) {
   if (surplusBtn) surplusBtn.title = surplusTapLine(snap);
 }
 
-function applyPreview() {
-  const box = $("home-preview-list");
-  if (!box) return;
-  const items = previewExpenses();
-  box.removeAll();
-  if (items.length === 0) {
-    box.add(
-      makePreviewRow({
-        title: "本月暂无消费",
-        subtitle: "",
-        amount: "",
-        date: ""
-      })
-    );
-    return;
+function previewListHeight(itemCount) {
+  const n = itemCount > 0 ? Math.min(itemCount, PREVIEW_LIMIT) : 1;
+  return n * PREVIEW_ROW_H;
+}
+
+function buildPreviewListData(items) {
+  const rows = items || previewExpenses();
+  if (rows.length === 0) {
+    return [
+      {
+        title: { text: "本月暂无消费", textColor: $color("secondaryLabel") },
+        amount: { text: "", textColor: $color("clear") },
+        date: { text: "", textColor: $color("clear") }
+      }
+    ];
   }
-  items.forEach(function(e) {
-    const title = e.note ? e.note : "消费";
-    box.add(
-      makePreviewRow({
-        title: title,
-        subtitle: "",
-        amount: "-" + formatAmountShort(e.amount),
-        date: util.formatDateTime(e.at).slice(0, 10)
-      })
-    );
+  return rows.map(function(e) {
+    return {
+      title: {
+        text: e.note ? e.note : "消费",
+        textColor: $color("label")
+      },
+      amount: {
+        text: "-" + formatAmountShort(e.amount),
+        textColor: $color("label")
+      },
+      date: {
+        text: util.formatDateTime(e.at).slice(0, 10),
+        textColor: $color("tertiaryLabel")
+      }
+    };
   });
 }
 
-function makePreviewRow(row) {
-  return {
-    type: "view",
-    props: { height: 52 },
-    layout: function(make) {
-      make.left.right.equalTo();
-      make.height.equalTo(52);
-    },
-    views: [
-      {
-        type: "view",
-        props: {
-          bgcolor: $color("tertiarySystemFill"),
-          radius: 6
-        },
-        layout: function(make) {
-          make.left.inset(16);
-          make.centerY.equalTo();
-          make.width.height.equalTo(32);
-        }
+const previewListTemplate = {
+  views: [
+    {
+      type: "view",
+      props: {
+        bgcolor: $color("tertiarySystemFill"),
+        radius: 6
       },
-      {
-        type: "label",
-        props: {
-          text: row.title,
-          font: $font(16),
-          textColor: $color("label"),
-          lines: 1
-        },
-        layout: function(make) {
-          make.left.equalTo(16 + 32 + 12);
-          make.centerY.equalTo();
-          make.right.lessThanOrEqualTo(-100);
-        }
-      },
-      {
-        type: "label",
-        props: {
-          text: row.amount,
-          font: $font("semibold", 16),
-          textColor: $color("label"),
-          align: $align.right
-        },
-        layout: function(make) {
-          make.right.inset(16);
-          make.top.inset(10);
-        }
-      },
-      {
-        type: "label",
-        props: {
-          text: row.date,
-          font: $font(12),
-          textColor: $color("tertiaryLabel"),
-          align: $align.right
-        },
-        layout: function(make) {
-          make.right.inset(16);
-          make.bottom.inset(10);
-        }
+      layout: function(make, view) {
+        make.left.inset(16);
+        make.centerY.equalTo(view.super);
+        make.width.height.equalTo(32);
       }
-    ]
-  };
+    },
+    {
+      type: "label",
+      props: { id: "title", font: $font(16), lines: 1 },
+      layout: function(make, view) {
+        make.left.equalTo(60);
+        make.centerY.equalTo(view.super);
+        make.right.lessThanOrEqualTo(view.super).inset(100);
+      }
+    },
+    {
+      type: "label",
+      props: { id: "amount", font: $font("semibold", 16), align: $align.right },
+      layout: function(make, view) {
+        make.right.inset(16);
+        make.top.inset(10);
+      }
+    },
+    {
+      type: "label",
+      props: { id: "date", font: $font(12), align: $align.right },
+      layout: function(make, view) {
+        make.right.inset(16);
+        make.bottom.inset(10);
+      }
+    }
+  ]
+};
+
+function applyPreview() {
+  const list = $("home-preview-list");
+  if (!list) return;
+  const items = previewExpenses();
+  list.data = buildPreviewListData(items);
+  const height = previewListHeight(items.length);
+  list.remakeLayout(function(make) {
+    make.left.right.inset(16);
+    make.top.equalTo(40);
+    make.height.equalTo(height);
+  });
 }
 
 function refresh() {
@@ -497,42 +493,23 @@ function render() {
                 }
               },
               {
-                type: "view",
+                type: "list",
                 props: {
                   id: "home-preview-list",
+                  scrollEnabled: false,
+                  separatorStyle: 0,
+                  rowHeight: PREVIEW_ROW_H,
                   bgcolor: $color("secondarySystemGroupedBackground"),
-                  radius: 12
+                  radius: 12,
+                  template: previewListTemplate,
+                  data: buildPreviewListData()
                 },
                 layout: function(make) {
+                  const items = previewExpenses();
                   make.left.right.inset(16);
                   make.top.equalTo(40);
-                },
-                views: (function() {
-                  const views = [];
-                  const items = previewExpenses();
-                  if (items.length === 0) {
-                    views.push(
-                      makePreviewRow({
-                        title: "本月暂无消费",
-                        subtitle: "",
-                        amount: "",
-                        date: ""
-                      })
-                    );
-                  } else {
-                    items.forEach(function(e) {
-                      views.push(
-                        makePreviewRow({
-                          title: e.note ? e.note : "消费",
-                          subtitle: "",
-                          amount: "-" + formatAmountShort(e.amount),
-                          date: util.formatDateTime(e.at).slice(0, 10)
-                        })
-                      );
-                    });
-                  }
-                  return views;
-                })()
+                  make.height.equalTo(previewListHeight(items.length));
+                }
               },
               {
                 type: "button",

@@ -2,6 +2,8 @@ const util = require("scripts/util");
 const calc = require("scripts/calc");
 const state = require("scripts/state");
 
+const MONTH_ROW_H = 56;
+
 function moneyColor(n) {
   if (n < 0) return $color("#D32F2F");
   if (n > 0) return $color("#2E7D32");
@@ -37,14 +39,44 @@ function buildMonthRows() {
     .slice()
     .reverse()
     .map(function(r) {
-      const tag = r.isCurrent ? "" : "";
       return {
-        yearMonth: r.yearMonth + tag,
+        yearMonth: r.yearMonth,
         detail: monthDetailText(r),
         surplus: r.surplus
       };
     });
 }
+
+function buildMonthListData() {
+  return buildMonthRows().map(function(row) {
+    return {
+      ym: { text: row.yearMonth, textColor: $color("label") },
+      detail: { text: row.detail, textColor: $color("secondaryLabel") }
+    };
+  });
+}
+
+const monthListTemplate = {
+  views: [
+    {
+      type: "label",
+      props: { id: "ym", font: $font(16) },
+      layout: function(make, view) {
+        make.left.inset(16);
+        make.centerY.equalTo(view.super);
+      }
+    },
+    {
+      type: "label",
+      props: { id: "detail", font: $font(12), align: $align.right, lines: 2 },
+      layout: function(make, view) {
+        make.right.inset(16);
+        make.left.greaterThanOrEqualTo(100);
+        make.centerY.equalTo(view.super);
+      }
+    }
+  ]
+};
 
 function refreshView() {
   const current = util.currentYearMonth();
@@ -56,51 +88,16 @@ function refreshView() {
     header.textColor = moneyColor(cum.cumulative);
   }
   if (list) {
-    list.removeAll();
-    buildMonthRows().forEach(function(row) {
-      list.add(makeMonthRow(row));
+    const rows = buildMonthListData();
+    list.data = rows;
+    const count = rows.length > 0 ? rows.length : 1;
+    list.remakeLayout(function(make) {
+      make.left.right.inset(16);
+      make.top.equalTo($("surplus-summary-card").bottom).offset(12);
+      make.height.equalTo(count * MONTH_ROW_H);
+      make.bottom.inset(24);
     });
   }
-}
-
-function makeMonthRow(row) {
-  return {
-    type: "view",
-    props: { height: 56 },
-    layout: function(make) {
-      make.left.right.equalTo();
-      make.height.equalTo(56);
-    },
-    views: [
-      {
-        type: "label",
-        props: {
-          text: row.yearMonth,
-          font: $font(16),
-          textColor: $color("label")
-        },
-        layout: function(make) {
-          make.left.inset(16);
-          make.centerY.equalTo();
-        }
-      },
-      {
-        type: "label",
-        props: {
-          text: row.detail,
-          font: $font(12),
-          textColor: $color("secondaryLabel"),
-          align: $align.right,
-          lines: 2
-        },
-        layout: function(make) {
-          make.right.inset(16);
-          make.left.greaterThanOrEqualTo(100);
-          make.centerY.equalTo();
-        }
-      }
-    ]
-  };
 }
 
 function openSettings() {
@@ -111,6 +108,7 @@ function openSettings() {
 function open() {
   const current = util.currentYearMonth();
   const cum = calc.cumulativeSurplus(state.getData(), current);
+  const monthData = buildMonthListData();
 
   $ui.push({
     props: {
@@ -160,18 +158,23 @@ function open() {
             ]
           },
           {
-            type: "view",
+            type: "list",
             props: {
               id: "surplus-month-list",
+              scrollEnabled: false,
+              separatorStyle: 0,
+              rowHeight: MONTH_ROW_H,
               bgcolor: $color("secondarySystemGroupedBackground"),
-              radius: 12
+              radius: 12,
+              template: monthListTemplate,
+              data: monthData
             },
             layout: function(make) {
               make.left.right.inset(16);
               make.top.equalTo($("surplus-summary-card").bottom).offset(12);
+              make.height.equalTo(Math.max(monthData.length, 1) * MONTH_ROW_H);
               make.bottom.inset(24);
-            },
-            views: buildMonthRows().map(makeMonthRow)
+            }
           }
         ]
       }
