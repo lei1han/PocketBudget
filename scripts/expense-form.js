@@ -25,46 +25,52 @@ function refreshTimeLabel() {
   if (lab) lab.text = formatAtLabel(selectedAt);
 }
 
-function presetRows() {
-  return notePresets.load().map(function(title) {
-    return {
-      label: { text: title, textColor: $color(COLOR_OK) }
-    };
+function pickPresetMenu() {
+  const presets = notePresets.load();
+  if (!presets.length) {
+    $ui.toast("暂无预设，请先在「设置」中添加");
+    return;
+  }
+  $ui.menu({
+    items: presets,
+    handler: function(title, idx) {
+      if (idx < 0 || title === undefined || title === null) return;
+      setNote(String(title));
+    }
   });
 }
 
 function noteSectionRows() {
-  const rows = [];
-  const presets = presetRows();
-  if (presets.length > 0) {
-    presets.forEach(function(row) {
-      rows.push(row);
-    });
-  } else {
-    rows.push({
+  const presets = notePresets.load();
+  const hasPresets = presets.length > 0;
+  return [
+    {
       label: {
-        text: "暂无预设，可在首页「设置」中添加",
-        textColor: $color("secondaryLabel")
+        text: "选择常用备注",
+        textColor: $color(hasPresets ? "label" : "secondaryLabel")
       },
-      disabled: true
-    });
-  }
-  rows.push({
-    type: "input",
-    props: {
-      id: "exp-note",
-      type: $kbType.default,
-      placeholder: "可空，或点上方预设",
-      font: $font(17),
-      bgcolor: $color("clear")
+      value: {
+        text: hasPresets ? "›" : "暂无",
+        textColor: $color(hasPresets ? "tertiaryLabel" : "secondaryLabel")
+      },
+      action: "pick-preset"
     },
-    layout: function(make, view) {
-      make.left.right.inset(16);
-      make.top.bottom.inset(8);
-      make.height.greaterThanOrEqualTo(36);
+    {
+      type: "input",
+      props: {
+        id: "exp-note",
+        type: $kbType.default,
+        placeholder: "可空，或点上方选择常用备注",
+        font: $font(17),
+        bgcolor: $color("clear")
+      },
+      layout: function(make, view) {
+        make.left.right.inset(16);
+        make.top.bottom.inset(8);
+        make.height.greaterThanOrEqualTo(36);
+      }
     }
-  });
-  return rows;
+  ];
 }
 
 function buildListData() {
@@ -139,41 +145,6 @@ function buildListData() {
           ]
         }
       ]
-    },
-    {
-      title: "操作",
-      rows: [
-        {
-          type: "view",
-          props: { bgcolor: $color("clear"), selectable: false },
-          layout: function(make) {
-            make.height.equalTo(56);
-            make.width.equalTo();
-          },
-          views: [
-            {
-              type: "button",
-              props: {
-                title: "确认记账",
-                bgcolor: $color(COLOR_OK),
-                titleColor: $color("#FFFFFF"),
-                font: $font("bold", 17),
-                radius: 12,
-                clipsToBounds: true
-              },
-              layout: function(make, view) {
-                make.left.right.inset(0);
-                make.top.bottom.inset(4);
-              },
-              events: {
-                tapped: function() {
-                  submit();
-                }
-              }
-            }
-          ]
-        }
-      ]
     }
   ];
 }
@@ -220,9 +191,9 @@ function onListSelect(indexPath) {
   if (indexPath.section === SECTION_NOTE) {
     const list = $("exp-form-list");
     const row = list && list.object(indexPath);
-    if (!row || row.disabled) return;
-    const title = row.label && row.label.text;
-    if (title) setNote(title);
+    if (row && row.action === "pick-preset") {
+      pickPresetMenu();
+    }
     return;
   }
   if (indexPath.section === SECTION_TIME) {
@@ -235,7 +206,17 @@ function open(onDone) {
   saveCallback = onDone || null;
 
   $ui.push({
-    props: { title: "记一笔" },
+    props: {
+      title: "记一笔",
+      navButtons: [
+        {
+          title: "记账",
+          handler: function() {
+            submit();
+          }
+        }
+      ]
+    },
     views: [
       {
         type: "list",
@@ -244,6 +225,7 @@ function open(onDone) {
           style: 2,
           rowHeight: 48,
           bgcolor: $color("insetGroupedBackground"),
+          keyboardDismissMode: 1,
           template: {
             views: [
               {
@@ -252,19 +234,65 @@ function open(onDone) {
                 layout: function(make, view) {
                   make.left.inset(16);
                   make.centerY.equalTo(view.super);
-                  make.right.lessThanOrEqualTo(view.super).inset(24);
+                  make.right.lessThanOrEqualTo(view.super).inset(80);
+                }
+              },
+              {
+                type: "label",
+                props: { id: "value", font: $font(17), align: $align.right },
+                layout: function(make, view) {
+                  make.right.inset(16);
+                  make.centerY.equalTo(view.super);
                 }
               }
             ]
           },
           data: buildListData()
         },
-        layout: $layout.fill,
+        layout: function(make) {
+          make.left.right.top.equalTo();
+          make.bottom.equalTo($("exp-save-bar").top);
+        },
         events: {
           didSelect: function(sender, indexPath) {
             onListSelect(indexPath);
           }
         }
+      },
+      {
+        type: "view",
+        props: {
+          id: "exp-save-bar",
+          bgcolor: $color("insetGroupedBackground")
+        },
+        layout: function(make) {
+          make.left.right.bottom.equalTo();
+          make.height.equalTo(64);
+        },
+        views: [
+          {
+            type: "button",
+            props: {
+              id: "exp-save",
+              title: "确认记账",
+              bgcolor: $color(COLOR_OK),
+              titleColor: $color("#FFFFFF"),
+              font: $font("bold", 17),
+              radius: 12,
+              clipsToBounds: true
+            },
+            layout: function(make, view) {
+              make.left.right.inset(20);
+              make.top.inset(8);
+              make.height.equalTo(48);
+            },
+            events: {
+              tapped: function() {
+                submit();
+              }
+            }
+          }
+        ]
       }
     ]
   });
