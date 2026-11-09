@@ -1,7 +1,8 @@
 const util = require("scripts/util");
 const calc = require("scripts/calc");
 const state = require("scripts/state");
-const io = require("scripts/io");
+const widgetData = require("scripts/widget-data");
+const widget = require("scripts/widget");
 
 let expensesUI = null;
 let installmentsUI = null;
@@ -9,7 +10,8 @@ let surplusUI = null;
 
 const COLOR_OK = "#007AFF";
 const COLOR_WARN = "#D32F2F";
-const COLOR_TRACK = "#E5E5EA";
+const COLOR_PRIMARY_BTN = "#1C1C1E";
+const PREVIEW_LIMIT = 4;
 
 function setDeps(deps) {
   expensesUI = deps.expenses;
@@ -23,148 +25,173 @@ function moneyColor(n) {
   return $color("secondaryLabel");
 }
 
-/** 占用比例与进度条展示信息；预算为 0 时不除零 */
-function usageInfo(snap) {
-  const budget = Number(snap.budget) || 0;
-  const occupied = Number(snap.occupied) || 0;
-
-  if (!(budget > 0)) {
-    if (occupied <= 0) {
-      return {
-        barRatio: 0,
-        fillColor: COLOR_OK,
-        percentText: "0%",
-        hint: "未设预算",
-        over: false
-      };
-    }
-    return {
-      barRatio: 1,
-      fillColor: COLOR_WARN,
-      percentText: "—",
-      hint: "未设预算 · 已占用 " + util.formatMoney(occupied),
-      over: true
-    };
-  }
-
-  const ratio = occupied / budget;
-  const pctInt = Math.round(ratio * 100);
-  const over = ratio > 1;
-  if (over) {
-    const overAmt = util.roundMoney(occupied - budget);
-    return {
-      barRatio: 1,
-      fillColor: COLOR_WARN,
-      percentText: ">" + pctInt + "%",
-      hint: "超支 " + util.formatMoney(overAmt) + " · 已占用 " + util.formatMoney(occupied),
-      over: true
-    };
-  }
-  return {
-    barRatio: Math.max(0, Math.min(ratio, 1)),
-    fillColor: COLOR_OK,
-    percentText: pctInt + "%",
-    hint: "已占用 " + util.formatMoney(occupied) + " / " + util.formatMoney(budget),
-    over: false
-  };
+function formatAmountShort(n) {
+  const x = util.roundMoney(n || 0);
+  const sign = x < 0 ? "-" : "";
+  const abs = Math.abs(x);
+  const plain = abs % 1 === 0 ? String(Math.round(abs)) : abs.toFixed(2);
+  return sign + plain;
 }
 
-function buildRows() {
-  const data = state.getData();
+function formatSignedSurplus(n) {
+  const x = util.roundMoney(n || 0);
+  const prefix = x > 0 ? "+" : x < 0 ? "" : "";
+  return prefix + util.formatMoney(x).replace(/^-/, "");
+}
+
+function currentSnap() {
   const ym = util.currentYearMonth();
-  const snap = calc.monthSnapshot(data, ym);
-  const overview = [
-    {
-      label: { text: "月份", textColor: $color("secondaryLabel") },
-      value: { text: ym, textColor: $color("label") }
-    },
-    {
-      label: { text: "当月预算", textColor: $color("secondaryLabel") },
-      value: {
-        text: util.formatMoney(snap.budget) + (snap.hasExplicitBudget ? "" : "（沿用）"),
-        textColor: $color("label")
-      }
-    },
-    {
-      label: { text: "已占用 · 消费", textColor: $color("secondaryLabel") },
-      value: { text: util.formatMoney(snap.expense), textColor: $color("label") }
-    },
-    {
-      label: { text: "已占用 · 分期预扣", textColor: $color("secondaryLabel") },
-      value: { text: util.formatMoney(snap.installment), textColor: $color("label") }
-    },
-    {
-      label: { text: "已占用合计", textColor: $color("secondaryLabel") },
-      value: { text: util.formatMoney(snap.occupied), textColor: $color("label") }
-    },
-    {
-      label: { text: "剩余", textColor: $color("secondaryLabel") },
-      value: { text: util.formatMoney(snap.remaining), textColor: moneyColor(snap.remaining) }
-    },
-    {
-      label: { text: "本月结余", textColor: $color("secondaryLabel") },
-      value: { text: util.formatMoney(snap.monthSurplus), textColor: moneyColor(snap.monthSurplus) }
-    },
-    {
-      label: { text: "累计结余", textColor: $color("secondaryLabel") },
-      value: { text: util.formatMoney(snap.cumulative), textColor: moneyColor(snap.cumulative) }
-    }
-  ];
-  const actions = [
-    { label: { text: "记一笔", textColor: $color(COLOR_OK) }, value: { text: "›", textColor: $color("tertiaryLabel") } },
-    { label: { text: "设预算", textColor: $color(COLOR_OK) }, value: { text: "›", textColor: $color("tertiaryLabel") } },
-    { label: { text: "消费明细", textColor: $color("label") }, value: { text: "›", textColor: $color("tertiaryLabel") } },
-    { label: { text: "分期", textColor: $color("label") }, value: { text: "›", textColor: $color("tertiaryLabel") } },
-    { label: { text: "结余一览", textColor: $color("label") }, value: { text: "›", textColor: $color("tertiaryLabel") } },
-    { label: { text: "导出 / 导入", textColor: $color("label") }, value: { text: "›", textColor: $color("tertiaryLabel") } },
-    { label: { text: "设置", textColor: $color("label") }, value: { text: "›", textColor: $color("tertiaryLabel") } }
-  ];
-  return [
-    { title: "本月总览", rows: overview },
-    { title: "功能", rows: actions }
-  ];
+  return calc.monthSnapshot(state.getData(), ym);
 }
 
-function currentUsage() {
+function isDark() {
+  try {
+    return !!$device.isDarkMode;
+  } catch (e) {
+    return false;
+  }
+}
+
+function drawRingForSnap(snap) {
+  const metrics = widgetData.computeRingMetrics(snap);
+  const size = 168;
+  return widget.drawDonutRing(size, metrics, isDark());
+}
+
+function previewExpenses() {
   const ym = util.currentYearMonth();
-  const snap = calc.monthSnapshot(state.getData(), ym);
-  return usageInfo(snap);
+  return calc.expensesForMonth(state.getData(), ym).slice(0, PREVIEW_LIMIT);
 }
 
-function applyUsageBar(info) {
-  const title = $("usage-title");
-  const percent = $("usage-percent");
-  const hint = $("usage-hint");
-  const fill = $("usage-fill");
-  if (!fill) return;
+function surplusTapLine(snap) {
+  return (
+    "本月结余 " +
+    formatSignedSurplus(snap.monthSurplus) +
+    " · 累计 " +
+    formatSignedSurplus(snap.cumulative)
+  );
+}
 
-  if (title) title.text = "预算占用";
-  if (percent) {
-    percent.text = info.percentText;
-    percent.textColor = $color(info.over ? COLOR_WARN : COLOR_OK);
-  }
-  if (hint) {
-    hint.text = info.hint;
-    hint.textColor = $color(info.over ? COLOR_WARN : "secondaryLabel");
-  }
+function budgetOccupiedLine(snap) {
+  return (
+    "预算 " +
+    formatAmountShort(snap.budget) +
+    " · 占用 " +
+    formatAmountShort(snap.occupied)
+  );
+}
 
-  const ratio = info.barRatio > 0 ? info.barRatio : 0;
-  fill.bgcolor = $color(info.fillColor);
-  fill.hidden = ratio <= 0;
-  fill.remakeLayout(function(make, view) {
-    make.left.top.bottom.equalTo();
-    if (ratio <= 0) {
-      make.width.equalTo(0);
-    } else {
-      make.width.equalTo(view.super).multipliedBy(ratio);
-    }
+function applyTopCard(snap) {
+  const ring = $("home-ring-img");
+  const remaining = $("home-remaining");
+  const sub = $("home-budget-occ");
+  const surplusBtn = $("home-surplus-btn");
+  if (ring) ring.image = drawRingForSnap(snap);
+  if (remaining) {
+    remaining.text = util.formatMoney(snap.remaining);
+    remaining.textColor = moneyColor(snap.remaining);
+  }
+  if (sub) sub.text = budgetOccupiedLine(snap);
+  if (surplusBtn) surplusBtn.title = surplusTapLine(snap);
+}
+
+function applyPreview() {
+  const box = $("home-preview-list");
+  if (!box) return;
+  const items = previewExpenses();
+  box.removeAll();
+  if (items.length === 0) {
+    box.add(
+      makePreviewRow({
+        title: "本月暂无消费",
+        subtitle: "",
+        amount: "",
+        date: ""
+      })
+    );
+    return;
+  }
+  items.forEach(function(e) {
+    const title = e.note ? e.note : "消费";
+    box.add(
+      makePreviewRow({
+        title: title,
+        subtitle: "",
+        amount: "-" + formatAmountShort(e.amount),
+        date: util.formatDateTime(e.at).slice(0, 10)
+      })
+    );
   });
 }
 
+function makePreviewRow(row) {
+  return {
+    type: "view",
+    props: { height: 52 },
+    layout: function(make) {
+      make.left.right.equalTo();
+      make.height.equalTo(52);
+    },
+    views: [
+      {
+        type: "view",
+        props: {
+          bgcolor: $color("tertiarySystemFill"),
+          radius: 6
+        },
+        layout: function(make) {
+          make.left.inset(16);
+          make.centerY.equalTo();
+          make.width.height.equalTo(32);
+        }
+      },
+      {
+        type: "label",
+        props: {
+          text: row.title,
+          font: $font(16),
+          textColor: $color("label"),
+          lines: 1
+        },
+        layout: function(make) {
+          make.left.equalTo(16 + 32 + 12);
+          make.centerY.equalTo();
+          make.right.lessThanOrEqualTo(-100);
+        }
+      },
+      {
+        type: "label",
+        props: {
+          text: row.amount,
+          font: $font("semibold", 16),
+          textColor: $color("label"),
+          align: $align.right
+        },
+        layout: function(make) {
+          make.right.inset(16);
+          make.top.inset(10);
+        }
+      },
+      {
+        type: "label",
+        props: {
+          text: row.date,
+          font: $font(12),
+          textColor: $color("tertiaryLabel"),
+          align: $align.right
+        },
+        layout: function(make) {
+          make.right.inset(16);
+          make.bottom.inset(10);
+        }
+      }
+    ]
+  };
+}
+
 function refresh() {
-  applyUsageBar(currentUsage());
-  const list = $("home-list");
-  if (list) list.data = buildRows();
+  applyTopCard(currentSnap());
+  applyPreview();
 }
 
 function promptSetBudget() {
@@ -199,164 +226,393 @@ function promptAddExpense(onDone) {
   form.open(onDone);
 }
 
+function openSettings() {
+  const settings = require("scripts/settings");
+  settings.open(function() {
+    refresh();
+  });
+}
+
 function handleAction(key) {
-  if (key === "add-expense") return promptAddExpense();
+  if (key === "add-expense") return promptAddExpense(refresh);
   if (key === "set-budget") return promptSetBudget();
   if (key === "expenses") return expensesUI && expensesUI.open();
   if (key === "installments") return installmentsUI && installmentsUI.open();
   if (key === "surplus") return surplusUI && surplusUI.open();
-  if (key === "io") {
-    return io.showMenu(function() {
-      refresh();
-    });
+  if (key === "settings") return openSettings();
+}
+
+/** @deprecated 保留给 widget / 测试对 usageInfo 的引用 */
+function usageInfo(snap) {
+  const budget = Number(snap.budget) || 0;
+  const occupied = Number(snap.occupied) || 0;
+  if (!(budget > 0)) {
+    if (occupied <= 0) {
+      return { barRatio: 0, fillColor: COLOR_OK, percentText: "0%", hint: "未设预算", over: false };
+    }
+    return {
+      barRatio: 1,
+      fillColor: COLOR_WARN,
+      percentText: "—",
+      hint: "未设预算 · 已占用 " + util.formatMoney(occupied),
+      over: true
+    };
   }
-  if (key === "settings") {
-    const settings = require("scripts/settings");
-    return settings.open();
+  const ratio = occupied / budget;
+  const pctInt = Math.round(ratio * 100);
+  const over = ratio > 1;
+  if (over) {
+    const overAmt = util.roundMoney(occupied - budget);
+    return {
+      barRatio: 1,
+      fillColor: COLOR_WARN,
+      percentText: ">" + pctInt + "%",
+      hint: "超支 " + util.formatMoney(overAmt),
+      over: true
+    };
   }
+  return {
+    barRatio: Math.max(0, Math.min(ratio, 1)),
+    fillColor: COLOR_OK,
+    percentText: pctInt + "%",
+    hint: "",
+    over: false
+  };
+}
+
+function primaryButton(title, handler) {
+  return {
+    type: "button",
+    props: {
+      title: title,
+      bgcolor: $color(COLOR_PRIMARY_BTN),
+      titleColor: $color("#FFFFFF"),
+      radius: 12,
+      font: $font("semibold", 17)
+    },
+    layout: function(make) {
+      make.height.equalTo(50);
+    },
+    events: { tapped: handler }
+  };
+}
+
+function secondaryButton(title, handler) {
+  return {
+    type: "button",
+    props: {
+      title: title,
+      bgcolor: $color("secondarySystemGroupedBackground"),
+      titleColor: $color("label"),
+      radius: 12,
+      font: $font("semibold", 17)
+    },
+    layout: function(make) {
+      make.height.equalTo(50);
+    },
+    events: { tapped: handler }
+  };
 }
 
 function render() {
-  const info = currentUsage();
-  const initialRatio = info.barRatio > 0 ? info.barRatio : 0;
+  const snap = currentSnap();
+  const ringImg = drawRingForSnap(snap);
 
   $ui.render({
     props: {
-      title: "PocketBudget"
+      title: "PocketBudget",
+      navButtons: [
+        {
+          icon: "gear",
+          handler: function() {
+            handleAction("settings");
+          }
+        }
+      ]
     },
     views: [
       {
-        type: "view",
-        props: {
-          id: "usage-card",
-          bgcolor: $color("clear")
-        },
+        type: "scroll",
+        props: { id: "home-scroll", showsVerticalIndicator: true },
         layout: function(make) {
-          make.left.right.top.equalTo();
-          make.height.equalTo(108);
+          make.edges.equalTo();
         },
         views: [
           {
-            type: "label",
-            props: {
-              id: "usage-title",
-              text: "预算占用",
-              font: $font(13),
-              textColor: $color("secondaryLabel")
-            },
-            layout: function(make) {
-              make.left.inset(20);
-              make.top.inset(14);
-            }
-          },
-          {
-            type: "label",
-            props: {
-              id: "usage-percent",
-              text: info.percentText,
-              font: $font("bold", 28),
-              textColor: $color(info.over ? COLOR_WARN : COLOR_OK),
-              align: $align.right
-            },
-            layout: function(make) {
-              make.right.inset(20);
-              make.centerY.equalTo($("usage-title"));
-            }
-          },
-          {
             type: "view",
             props: {
-              id: "usage-track",
-              bgcolor: $color(COLOR_TRACK),
-              radius: 6
+              id: "home-top-card",
+              bgcolor: $color("secondarySystemGroupedBackground"),
+              radius: 16,
+              clipsToBounds: true
             },
             layout: function(make) {
-              make.left.right.inset(20);
-              make.top.equalTo($("usage-title").bottom).offset(14);
-              make.height.equalTo(12);
+              make.left.right.inset(16);
+              make.top.inset(12);
             },
             views: [
               {
+                type: "image",
+                props: {
+                  id: "home-ring-img",
+                  image: ringImg,
+                  bgcolor: $color("clear")
+                },
+                layout: function(make) {
+                  make.centerX.equalTo();
+                  make.top.inset(20);
+                  make.width.height.equalTo(120);
+                }
+              },
+              {
+                type: "label",
+                props: {
+                  id: "home-remaining-hint",
+                  text: "剩余",
+                  font: $font(12),
+                  textColor: $color("secondaryLabel"),
+                  align: $align.center
+                },
+                layout: function(make) {
+                  make.centerX.equalTo($("home-ring-img"));
+                  make.centerY.equalTo($("home-ring-img")).offset(-14);
+                }
+              },
+              {
+                type: "label",
+                props: {
+                  id: "home-remaining",
+                  text: util.formatMoney(snap.remaining),
+                  font: $font("bold", 20),
+                  textColor: moneyColor(snap.remaining),
+                  align: $align.center
+                },
+                layout: function(make) {
+                  make.centerX.equalTo($("home-ring-img"));
+                  make.centerY.equalTo($("home-ring-img")).offset(8);
+                }
+              },
+              {
+                type: "label",
+                props: {
+                  id: "home-budget-occ",
+                  text: budgetOccupiedLine(snap),
+                  font: $font(13),
+                  textColor: $color("secondaryLabel"),
+                  align: $align.center
+                },
+                layout: function(make) {
+                  make.left.right.inset(16);
+                  make.top.equalTo($("home-ring-img").bottom).offset(12);
+                }
+              },
+              {
                 type: "view",
                 props: {
-                  id: "usage-fill",
-                  bgcolor: $color(info.fillColor),
-                  radius: 6,
-                  hidden: initialRatio <= 0
+                  bgcolor: $color("separator"),
+                  alpha: 0.35
                 },
-                layout: function(make, view) {
-                  make.left.top.bottom.equalTo();
-                  if (initialRatio <= 0) {
-                    make.width.equalTo(0);
-                  } else {
-                    make.width.equalTo(view.super).multipliedBy(initialRatio);
+                layout: function(make) {
+                  make.left.right.inset(16);
+                  make.top.equalTo($("home-budget-occ").bottom).offset(12);
+                  make.height.equalTo(0.5);
+                }
+              },
+              {
+                type: "button",
+                props: {
+                  id: "home-surplus-btn",
+                  title: surplusTapLine(snap),
+                  bgcolor: $color("clear"),
+                  titleColor: $color("label"),
+                  font: $font(14)
+                },
+                layout: function(make) {
+                  make.left.right.equalTo();
+                  make.top.equalTo($("home-budget-occ").bottom).offset(12);
+                  make.height.equalTo(44);
+                  make.bottom.inset(4);
+                },
+                events: {
+                  tapped: function() {
+                    handleAction("surplus");
                   }
                 }
               }
             ]
           },
           {
-            type: "label",
-            props: {
-              id: "usage-hint",
-              text: info.hint,
-              font: $font(12),
-              textColor: $color(info.over ? COLOR_WARN : "secondaryLabel"),
-              lines: 1
-            },
+            type: "view",
             layout: function(make) {
-              make.left.right.inset(20);
-              make.top.equalTo($("usage-track").bottom).offset(10);
-            }
-          }
-        ]
-      },
-      {
-        type: "list",
-        props: {
-          id: "home-list",
-          rowHeight: 48,
-          template: {
-            props: { bgcolor: $color("clear") },
+              make.left.right.inset(16);
+              make.top.equalTo($("home-top-card").bottom).offset(16);
+              make.height.equalTo(50);
+            },
             views: [
               {
-                type: "label",
-                props: { id: "label", font: $font(16) },
-                layout: function(make, view) {
-                  make.left.inset(16);
-                  make.centerY.equalTo(view.super);
-                }
+                type: "view",
+                layout: function(make) {
+                  make.left.top.bottom.equalTo();
+                  make.width.equalTo(make.super).multipliedBy(0.48);
+                },
+                views: [primaryButton("记一笔", function() { handleAction("add-expense"); })]
               },
               {
-                type: "label",
-                props: {
-                  id: "value",
-                  font: $font("bold", 16),
-                  align: $align.right
+                type: "view",
+                layout: function(make) {
+                  make.right.top.bottom.equalTo();
+                  make.width.equalTo(make.super).multipliedBy(0.48);
                 },
-                layout: function(make, view) {
-                  make.right.inset(16);
-                  make.centerY.equalTo(view.super);
-                  make.left.greaterThanOrEqualTo(view.prev.right).offset(12);
-                }
+                views: [secondaryButton("消费明细", function() { handleAction("expenses"); })]
               }
             ]
           },
-          data: buildRows()
-        },
-        layout: function(make) {
-          make.left.right.bottom.equalTo();
-          make.top.equalTo($("usage-card").bottom);
-        },
-        events: {
-          didSelect: function(sender, indexPath) {
-            if (indexPath.section !== 1) return;
-            const keys = ["add-expense", "set-budget", "expenses", "installments", "surplus", "io", "settings"];
-            handleAction(keys[indexPath.row]);
+          {
+            type: "view",
+            props: { id: "home-preview-section" },
+            layout: function(make) {
+              make.left.right.equalTo();
+              make.top.equalTo($("home-top-card").bottom).offset(82);
+              make.bottom.inset(24);
+            },
+            views: [
+              {
+                type: "button",
+                props: {
+                  title: "本月明细  ›",
+                  bgcolor: $color("clear"),
+                  titleColor: $color("label"),
+                  font: $font("semibold", 17),
+                  align: $align.left
+                },
+                layout: function(make) {
+                  make.left.right.inset(16);
+                  make.top.equalTo();
+                  make.height.equalTo(40);
+                },
+                events: {
+                  tapped: function() {
+                    handleAction("expenses");
+                  }
+                }
+              },
+              {
+                type: "view",
+                props: {
+                  id: "home-preview-list",
+                  bgcolor: $color("secondarySystemGroupedBackground"),
+                  radius: 12
+                },
+                layout: function(make) {
+                  make.left.right.inset(16);
+                  make.top.equalTo(40);
+                },
+                views: (function() {
+                  const views = [];
+                  const items = previewExpenses();
+                  if (items.length === 0) {
+                    views.push(
+                      makePreviewRow({
+                        title: "本月暂无消费",
+                        subtitle: "",
+                        amount: "",
+                        date: ""
+                      })
+                    );
+                  } else {
+                    items.forEach(function(e) {
+                      views.push(
+                        makePreviewRow({
+                          title: e.note ? e.note : "消费",
+                          subtitle: "",
+                          amount: "-" + formatAmountShort(e.amount),
+                          date: util.formatDateTime(e.at).slice(0, 10)
+                        })
+                      );
+                    });
+                  }
+                  return views;
+                })()
+              },
+              {
+                type: "button",
+                props: {
+                  title: "更多  ›",
+                  bgcolor: $color("clear"),
+                  titleColor: $color(COLOR_OK),
+                  font: $font(15),
+                  align: $align.center
+                },
+                layout: function(make) {
+                  make.left.right.inset(16);
+                  make.top.equalTo($("home-preview-list").bottom).offset(8);
+                  make.height.equalTo(36);
+                },
+                events: {
+                  tapped: function() {
+                    handleAction("expenses");
+                  }
+                }
+              },
+              {
+                type: "view",
+                layout: function(make) {
+                  make.left.right.inset(16);
+                  make.top.equalTo($("home-preview-list").bottom).offset(52);
+                  make.height.equalTo(44);
+                  make.bottom.equalTo(-8);
+                },
+                views: [
+                  {
+                    type: "button",
+                    props: {
+                      title: "分期",
+                      bgcolor: $color("secondarySystemGroupedBackground"),
+                      titleColor: $color("label"),
+                      radius: 10,
+                      font: $font(16)
+                    },
+                    layout: function(make) {
+                      make.left.top.bottom.equalTo();
+                      make.width.equalTo(make.super).multipliedBy(0.48);
+                    },
+                    events: {
+                      tapped: function() {
+                        handleAction("installments");
+                      }
+                    }
+                  },
+                  {
+                    type: "button",
+                    props: {
+                      title: "预算",
+                      bgcolor: $color("secondarySystemGroupedBackground"),
+                      titleColor: $color("label"),
+                      radius: 10,
+                      font: $font(16)
+                    },
+                    layout: function(make) {
+                      make.right.top.bottom.equalTo();
+                      make.width.equalTo(make.super).multipliedBy(0.48);
+                    },
+                    events: {
+                      tapped: function() {
+                        handleAction("set-budget");
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
           }
-        }
+        ]
       }
-    ]
+    ],
+    events: {
+      appeared: function() {
+        refresh();
+      }
+    }
   });
 }
 
