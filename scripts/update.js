@@ -27,6 +27,43 @@ function localVersion() {
   return "0.0.0";
 }
 
+function httpStatus(resp) {
+  if (!resp) return null;
+  const direct = resp.statusCode;
+  if (typeof direct === "number" && !isNaN(direct)) return direct;
+  const nested = resp.response && resp.response.statusCode;
+  if (typeof nested === "number" && !isNaN(nested)) return nested;
+  return null;
+}
+
+function formatHttpFailure(resp, action) {
+  const label = action || "请求";
+  if (!resp) return label + "失败：网络异常，请稍后重试";
+  if (resp.error) {
+    const e = resp.error;
+    const detail =
+      (e && (e.localizedDescription || e.message || e.domain)) || String(e);
+    const code = httpStatus(resp);
+    if (code != null) return label + "失败（HTTP " + code + "）：" + detail;
+    return label + "失败：" + detail;
+  }
+  const code = httpStatus(resp);
+  if (code != null) return label + "失败（HTTP " + code + "）";
+  return label + "失败：网络异常（未收到 HTTP 状态码）";
+}
+
+function parseReleasePayload(resp) {
+  if (!resp) return null;
+  let data = resp.data;
+  if (typeof data === "string") {
+    data = util.safeJsonParse(data);
+  }
+  if (data && typeof data === "object" && (data.tag_name || data.name)) {
+    return data;
+  }
+  return null;
+}
+
 function versionFromRelease(release) {
   if (!release) return "";
   let tag = String(release.tag_name || "").trim();
@@ -53,11 +90,17 @@ function requestLatest(handler) {
     },
     timeout: 30,
     handler: function(resp) {
-      if (!resp || resp.error) {
-        handler({ ok: false, message: "网络异常，请稍后重试" });
+      if (!resp) {
+        handler({ ok: false, message: formatHttpFailure(null, "获取 Release") });
         return;
       }
-      const code = resp.statusCode;
+      if (resp.error) {
+        handler({ ok: false, message: formatHttpFailure(resp, "获取 Release") });
+        return;
+      }
+      const code = httpStatus(resp);
+      const release = parseReleasePayload(resp);
+
       if (code === 404) {
         handler({
           ok: false,
@@ -65,16 +108,28 @@ function requestLatest(handler) {
         });
         return;
       }
-      if (!(code >= 200 && code < 300)) {
-        handler({ ok: false, message: "获取 Release 失败（HTTP " + code + "）" });
+
+      if (release) {
+        if (code != null && (code < 200 || code >= 300)) {
+          handler({
+            ok: false,
+            message: "获取 Release 失败（HTTP " + code + "）"
+          });
+          return;
+        }
+        handler({ ok: true, release: release });
         return;
       }
-      const data = resp.data;
-      if (!data || typeof data !== "object") {
-        handler({ ok: false, message: "Release 数据无效" });
+
+      if (code != null) {
+        handler({
+          ok: false,
+          message: "获取 Release 失败（HTTP " + code + "）"
+        });
         return;
       }
-      handler({ ok: true, release: data });
+
+      handler({ ok: false, message: "Release 数据无效或无法解析" });
     }
   });
 }
@@ -89,10 +144,25 @@ function installBox(remoteVersion, downloadUrl) {
     },
     timeout: 120,
     handler: function(resp) {
-      const data = resp && resp.data;
+      if (!resp || resp.error) {
+        $ui.loading(false);
+        $ui.alert(formatHttpFailure(resp, "下载"));
+        return;
+      }
+      const code = httpStatus(resp);
+      const data = resp.data;
       if (!data) {
         $ui.loading(false);
-        $ui.alert("下载失败，请检查网络后重试");
+        if (code != null) {
+          $ui.alert("下载失败（HTTP " + code + "）");
+        } else {
+          $ui.alert("下载失败：未收到安装包数据");
+        }
+        return;
+      }
+      if (code != null && (code < 200 || code >= 300)) {
+        $ui.loading(false);
+        $ui.alert("下载失败（HTTP " + code + "）");
         return;
       }
       const cur = $addin.current;
@@ -187,5 +257,8 @@ module.exports = {
   localVersion,
   check,
   versionFromRelease,
-  findBoxAsset
+  findBoxAsset,
+  httpStatus,
+  formatHttpFailure,
+  parseReleasePayload
 };

@@ -134,5 +134,21 @@ const upd = require("scripts/update");
 const fake = { tag_name: "v2.0.0", assets: [{ name: "PocketBudget.box", browser_download_url: "https://example.com/a.box" }] };
 assert(upd.versionFromRelease(fake) === "2.0.0", "release ver");
 assert(upd.findBoxAsset(fake).browser_download_url.indexOf("example.com") > 0, "find asset");
+assert(upd.httpStatus({ response: { statusCode: 200 } }) === 200, "httpStatus nested");
+assert(upd.httpStatus({ statusCode: 404 }) === 404, "httpStatus direct");
+assert(upd.httpStatus({}) === null, "httpStatus none");
+assert(
+  upd.formatHttpFailure({ response: { statusCode: 503 } }, "获取 Release").indexOf("503") > 0,
+  "http fail code"
+);
+assert(
+  upd.formatHttpFailure({}).indexOf("undefined") < 0,
+  "no undefined in err"
+);
+const gh = {
+  response: { statusCode: 200 },
+  data: { tag_name: "v1.0.6", assets: [] }
+};
+assert(upd.parseReleasePayload(gh).tag_name === "v1.0.6", "parse release");
 
 console.log("ALL TESTS PASSED");
