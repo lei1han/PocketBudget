@@ -8,7 +8,15 @@ PocketBudget — 本地个人月度预算：设当月预算、记消费、分期
 2. 用 **JSBox** 打开该文件完成安装（也可把 `.box` 改名为 `.zip` 再导入，本质相同）。
 3. 在 JSBox 脚本列表中点「PocketBudget」运行。
 
-要求：JSBox SDK ≥ 2.0，iOS ≥ 14。
+要求：JSBox SDK ≥ 2.0，iOS ≥ 14；**桌面小组件**需 JSBox ≥ 2.12。
+
+### 桌面小组件（小尺寸）
+
+1. iOS 主屏幕长按 → 左上角 **+** → 搜索 **JSBox** → 选择 **小** 尺寸。
+2. 添加到桌面后 **编辑小组件** → 运行脚本选 **PocketBudget**。
+3. 展示 **本月剩余**（= 当月预算 − 消费 − 分期预扣，与首页一致）及圆环进度；超支时圆环与金额警示色；点按打开 PocketBudget。
+
+数据来自同一沙盒 `data/budget-v1.json`，记账保存后会请求刷新时间线（系统不保证立即更新）。
 
 ## 使用说明
 
@@ -117,6 +125,8 @@ jsbox-budget/           # 源码
     note-presets.js
     settings.js
     update.js
+    widget.js
+    widget-data.js
     expenses.js
     installments.js
     surplus.js

@@ -67,6 +67,11 @@ function save(data) {
     path: DATA_PATH
   });
   mirrorCache(payload);
+  try {
+    if (typeof $app !== "undefined" && $app.env !== $env.widget && $widget && $widget.reloadTimeline) {
+      $widget.reloadTimeline();
+    }
+  } catch (e) {}
   return !!ok;
 }
 
