@@ -195,7 +195,7 @@ function applyPreview() {
   list.data = buildPreviewListData(items);
   const height = previewListHeight(items.length);
   list.remakeLayout(function(make) {
-    make.left.right.equalTo();
+    make.left.right.inset(16);
     make.top.equalTo($("home-preview-header").bottom).offset(6);
     make.height.equalTo(height);
   });
