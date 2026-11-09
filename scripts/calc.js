@@ -223,6 +223,19 @@ function createInstallment(data, total, periods, startMonth, note) {
   };
 }
 
+function deleteInstallment(data, planId) {
+  const plans = data.installments || [];
+  if (!plans.some(p => p.id === planId)) {
+    return { ok: false, message: "未找到分期计划" };
+  }
+  const installments = plans.filter(p => p.id !== planId);
+  const installmentItems = (data.installmentItems || []).filter(it => it.planId !== planId);
+  return {
+    ok: true,
+    data: Object.assign({}, data, { installments, installmentItems })
+  };
+}
+
 function endInstallment(data, planId) {
   const current = util.currentYearMonth();
   const plans = (data.installments || []).map(p => {
@@ -272,6 +285,7 @@ module.exports = {
   addExpense,
   deleteExpense,
   createInstallment,
+  deleteInstallment,
   endInstallment,
   expensesForMonth,
   installmentItemsForPlan

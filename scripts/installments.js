@@ -42,6 +42,42 @@ function refreshList() {
   if (list) list.data = listData();
 }
 
+function confirmDeleteInstallment(planId, onDone) {
+  $ui.alert({
+    title: "删除分期",
+    message: "将删除该分期及全部期次预扣；历史月份预扣也会撤销，结余立即重算。确认？",
+    actions: [
+      { title: "取消", style: "Cancel" },
+      {
+        title: "删除",
+        style: "Destructive",
+        handler: function() {
+          const result = calc.deleteInstallment(state.getData(), planId);
+          if (!result.ok) {
+            $ui.alert(result.message);
+            return;
+          }
+          state.setData(result.data);
+          refreshList();
+          home.refresh();
+          $ui.toast("已删除");
+          if (onDone) onDone();
+        }
+      }
+    ]
+  });
+}
+
+function deleteAt(indexPath) {
+  const list = $("ins-list");
+  const row = list.object(indexPath);
+  if (!row || !row.id) {
+    $ui.toast("无记录可删");
+    return;
+  }
+  confirmDeleteInstallment(row.id);
+}
+
 function promptCreate() {
   $input.text({
     type: $kbType.decimal,
@@ -183,6 +219,14 @@ function openDetail(planId) {
       }
     });
   }
+  buttons.push({
+    title: "删除分期",
+    handler: function() {
+      confirmDeleteInstallment(planId, function() {
+        $ui.pop();
+      });
+    }
+  });
 
   $ui.push({
     props: {
@@ -270,6 +314,15 @@ function open() {
           id: "ins-list",
           rowHeight: 56,
           data: listData(),
+          actions: [
+            {
+              title: "删除",
+              color: $color("red"),
+              handler: function(sender, indexPath) {
+                deleteAt(indexPath);
+              }
+            }
+          ],
           template: {
             views: [
               {

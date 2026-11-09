@@ -94,6 +94,51 @@ almost(calc.installmentSum(data, next1), 0, "cancel future1");
 almost(calc.installmentSum(data, next2), 0, "cancel future2");
 assert(data.installments[0].status === "ended", "status ended");
 
+// full delete installment - rollback all months
+data = {
+  version: 1,
+  budgets: [{ yearMonth: cur, amount: 5000 }],
+  expenses: [],
+  installments: [],
+  installmentItems: []
+};
+r = calc.createInstallment(data, 900, 3, cur, "del-test");
+assert(r.ok, "create ins for delete");
+data = r.data;
+const delPlanId = data.installments[0].id;
+almost(calc.installmentSum(data, cur), 300, "pre-delete m0");
+almost(calc.installmentSum(data, next1), 300, "pre-delete m1");
+almost(calc.installmentSum(data, next2), 300, "pre-delete m2");
+r = calc.deleteInstallment(data, delPlanId);
+assert(r.ok, "delete ins");
+data = r.data;
+assert(data.installments.length === 0, "no plans");
+assert(data.installmentItems.length === 0, "no items");
+almost(calc.installmentSum(data, cur), 0, "after delete m0");
+almost(calc.installmentSum(data, next1), 0, "after delete m1");
+almost(calc.installmentSum(data, next2), 0, "after delete m2");
+r = calc.deleteInstallment(data, delPlanId);
+assert(!r.ok, "delete missing");
+
+// endInstallment still only deactivates future (not full delete)
+data = {
+  version: 1,
+  budgets: [{ yearMonth: cur, amount: 5000 }],
+  expenses: [],
+  installments: [],
+  installmentItems: []
+};
+r = calc.createInstallment(data, 600, 2, cur, "end-only");
+data = r.data;
+const endOnlyId = data.installments[0].id;
+r = calc.endInstallment(data, endOnlyId);
+data = r.data;
+assert(data.installments.length === 1, "end keeps plan");
+assert(data.installmentItems.length === 2, "end keeps items");
+almost(calc.installmentSum(data, cur), 300, "end keep current item");
+const futureEnd = util.addMonths(cur, 1);
+almost(calc.installmentSum(data, futureEnd), 0, "end cancel future");
+
 // overspend negative cumulative
 data = {
   version: 1,
