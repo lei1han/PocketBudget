@@ -97,6 +97,26 @@ function safeJsonParse(text) {
   }
 }
 
+function parseSemver(s) {
+  const t = String(s || "")
+    .trim()
+    .replace(/^[vV]/, "");
+  const m = t.match(/^(\d+)(?:\.(\d+))?(?:\.(\d+))?/);
+  if (!m) return [0, 0, 0];
+  return [Number(m[1]) || 0, Number(m[2]) || 0, Number(m[3]) || 0];
+}
+
+/** @returns {number} 1 if a>b, -1 if a<b, 0 if equal */
+function compareSemver(a, b) {
+  const pa = parseSemver(a);
+  const pb = parseSemver(b);
+  for (let i = 0; i < 3; i++) {
+    if (pa[i] > pb[i]) return 1;
+    if (pa[i] < pb[i]) return -1;
+  }
+  return 0;
+}
+
 module.exports = {
   pad2,
   formatYearMonth,
@@ -111,5 +131,7 @@ module.exports = {
   formatDateTime,
   yearMonthFromDate,
   splitInstallmentAmounts,
-  safeJsonParse
+  safeJsonParse,
+  parseSemver,
+  compareSemver
 };
