@@ -139,41 +139,6 @@ function buildListData() {
           ]
         }
       ]
-    },
-    {
-      title: "操作",
-      rows: [
-        {
-          type: "view",
-          props: { bgcolor: $color("clear"), selectable: false },
-          layout: function(make) {
-            make.height.equalTo(56);
-            make.width.equalTo();
-          },
-          views: [
-            {
-              type: "button",
-              props: {
-                title: "确认记账",
-                bgcolor: $color(COLOR_OK),
-                titleColor: $color("#FFFFFF"),
-                font: $font("bold", 17),
-                radius: 12,
-                clipsToBounds: true
-              },
-              layout: function(make, view) {
-                make.left.right.inset(0);
-                make.top.bottom.inset(4);
-              },
-              events: {
-                tapped: function() {
-                  submit();
-                }
-              }
-            }
-          ]
-        }
-      ]
     }
   ];
 }
@@ -235,7 +200,17 @@ function open(onDone) {
   saveCallback = onDone || null;
 
   $ui.push({
-    props: { title: "记一笔" },
+    props: {
+      title: "记一笔",
+      navButtons: [
+        {
+          title: "记账",
+          handler: function() {
+            submit();
+          }
+        }
+      ]
+    },
     views: [
       {
         type: "list",
@@ -244,6 +219,7 @@ function open(onDone) {
           style: 2,
           rowHeight: 48,
           bgcolor: $color("insetGroupedBackground"),
+          keyboardDismissMode: 1,
           template: {
             views: [
               {
@@ -259,12 +235,50 @@ function open(onDone) {
           },
           data: buildListData()
         },
-        layout: $layout.fill,
+        layout: function(make) {
+          make.left.right.top.equalTo();
+          make.bottom.equalTo($("exp-save-bar").top);
+        },
         events: {
           didSelect: function(sender, indexPath) {
             onListSelect(indexPath);
           }
         }
+      },
+      {
+        type: "view",
+        props: {
+          id: "exp-save-bar",
+          bgcolor: $color("insetGroupedBackground")
+        },
+        layout: function(make) {
+          make.left.right.bottom.equalTo();
+          make.height.equalTo(64);
+        },
+        views: [
+          {
+            type: "button",
+            props: {
+              id: "exp-save",
+              title: "确认记账",
+              bgcolor: $color(COLOR_OK),
+              titleColor: $color("#FFFFFF"),
+              font: $font("bold", 17),
+              radius: 12,
+              clipsToBounds: true
+            },
+            layout: function(make, view) {
+              make.left.right.inset(20);
+              make.top.inset(8);
+              make.height.equalTo(48);
+            },
+            events: {
+              tapped: function() {
+                submit();
+              }
+            }
+          }
+        ]
       }
     ]
   });
