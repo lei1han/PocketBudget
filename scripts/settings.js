@@ -1,11 +1,14 @@
 const notePresets = require("scripts/note-presets");
 const update = require("scripts/update");
+const io = require("scripts/io");
 
 const SECTION_PRESETS = 0;
-const SECTION_APP = 1;
+const SECTION_DATA = 1;
+const SECTION_APP = 2;
 const BOX_ASSET_LABEL = "PocketBudget.box";
 
 let presets = [];
+let onChanged = null;
 
 function refreshList() {
   const list = $("settings-list");
@@ -40,6 +43,31 @@ function buildData() {
         }
       },
       rows: rows
+    },
+    {
+      title: "数据",
+      footer: {
+        type: "label",
+        props: {
+          height: 56,
+          text: "导出 JSON 或从剪贴板/文件覆盖导入本地全部预算数据。",
+          textColor: $color("secondaryLabel"),
+          font: $font(13),
+          lines: 0
+        }
+      },
+      rows: [
+        {
+          label: { text: "导出 JSON", textColor: $color("label") },
+          value: { text: "›", textColor: $color("tertiaryLabel") },
+          action: "export"
+        },
+        {
+          label: { text: "导入数据", textColor: $color("label") },
+          value: { text: "›", textColor: $color("tertiaryLabel") },
+          action: "import"
+        }
+      ]
     },
     {
       title: "应用",
@@ -147,7 +175,8 @@ function deleteAt(indexPath) {
   });
 }
 
-function open() {
+function open(changedHandler) {
+  onChanged = typeof changedHandler === "function" ? changedHandler : null;
   presets = notePresets.load();
   $ui.push({
     props: {
@@ -206,6 +235,19 @@ function open() {
           didSelect: function(sender, indexPath) {
             const row = sender.object(indexPath);
             if (!row) return;
+            if (indexPath.section === SECTION_DATA) {
+              if (row.action === "export") {
+                io.exportJson(function() {
+                  if (onChanged) onChanged();
+                });
+              } else if (row.action === "import") {
+                io.showMenu(function() {
+                  refreshList();
+                  if (onChanged) onChanged();
+                });
+              }
+              return;
+            }
             if (indexPath.section === SECTION_APP) {
               if (row.action === "check-update") update.check();
               return;
