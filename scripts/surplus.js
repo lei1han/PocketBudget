@@ -2,7 +2,8 @@ const util = require("scripts/util");
 const calc = require("scripts/calc");
 const state = require("scripts/state");
 
-const MONTH_ROW_H = 56;
+const MONTH_ROW_H = 58;
+const CARD_RADIUS = 14;
 
 function moneyColor(n) {
   if (n < 0) return $color("#D32F2F");
@@ -60,18 +61,19 @@ const monthListTemplate = {
   views: [
     {
       type: "label",
-      props: { id: "ym", font: $font(16) },
+      props: { id: "ym", font: $font("semibold", 16) },
       layout: function(make, view) {
         make.left.inset(16);
         make.centerY.equalTo(view.super);
+        make.width.equalTo(78);
       }
     },
     {
       type: "label",
-      props: { id: "detail", font: $font(12), align: $align.right, lines: 2 },
+      props: { id: "detail", font: $font(13), align: $align.right, lines: 2 },
       layout: function(make, view) {
-        make.right.inset(16);
-        make.left.greaterThanOrEqualTo(100);
+        make.right.inset(14);
+        make.left.equalTo(98);
         make.centerY.equalTo(view.super);
       }
     }
@@ -95,7 +97,7 @@ function refreshView() {
       make.left.right.inset(16);
       make.top.equalTo($("surplus-summary-card").bottom).offset(12);
       make.height.equalTo(count * MONTH_ROW_H);
-      make.bottom.inset(24);
+      make.bottom.inset(20);
     });
   }
 }
@@ -113,6 +115,7 @@ function open() {
   $ui.push({
     props: {
       title: "按月统计",
+      bgcolor: $color("systemGroupedBackground"),
       navButtons: [
         {
           icon: "gear",
@@ -125,20 +128,23 @@ function open() {
     views: [
       {
         type: "scroll",
-        props: { showsVerticalIndicator: true },
+        props: {
+          showsVerticalIndicator: false,
+          bgcolor: $color("systemGroupedBackground")
+        },
         layout: $layout.fill,
         views: [
           {
             type: "view",
             props: {
               id: "surplus-summary-card",
-              bgcolor: $color("secondarySystemGroupedBackground"),
-              radius: 16
+              bgcolor: $color("systemBackground"),
+              radius: CARD_RADIUS
             },
             layout: function(make) {
               make.left.right.inset(16);
-              make.top.inset(12);
-              make.height.equalTo(72);
+              make.top.inset(8);
+              make.height.equalTo(76);
             },
             views: [
               {
@@ -146,7 +152,7 @@ function open() {
                 props: {
                   id: "surplus-cumulative",
                   text: "累计结余 " + formatSignedSurplus(cum.cumulative),
-                  font: $font("semibold", 18),
+                  font: $font("semibold", 20),
                   textColor: moneyColor(cum.cumulative),
                   align: $align.center
                 },
@@ -162,10 +168,11 @@ function open() {
             props: {
               id: "surplus-month-list",
               scrollEnabled: false,
-              separatorStyle: 0,
+              separatorStyle: 1,
               rowHeight: MONTH_ROW_H,
-              bgcolor: $color("secondarySystemGroupedBackground"),
-              radius: 12,
+              bgcolor: $color("systemBackground"),
+              radius: CARD_RADIUS,
+              clipsToBounds: true,
               template: monthListTemplate,
               data: monthData
             },
@@ -173,7 +180,7 @@ function open() {
               make.left.right.inset(16);
               make.top.equalTo($("surplus-summary-card").bottom).offset(12);
               make.height.equalTo(Math.max(monthData.length, 1) * MONTH_ROW_H);
-              make.bottom.inset(24);
+              make.bottom.inset(20);
             }
           }
         ]
