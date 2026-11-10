@@ -717,6 +717,9 @@ function render() {
     events: {
       appeared: function() {
         refresh();
+        try {
+          require("scripts/webdav-sync").onAppAppear();
+        } catch (e) {}
       }
     }
   });

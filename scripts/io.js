@@ -2,9 +2,10 @@ const store = require("scripts/store");
 const state = require("scripts/state");
 const util = require("scripts/util");
 const calc = require("scripts/calc");
+const notePresets = require("scripts/note-presets");
 
 function exportJson(onDone) {
-  const payload = store.exportObject(state.getData());
+  const payload = store.exportObject(state.getData(), notePresets.load());
   const text = JSON.stringify(payload, null, 2);
   const name = "budget-export-" + util.currentYearMonth() + ".json";
   if (!$file.exists("data")) $file.mkdir("data");
@@ -31,7 +32,13 @@ function applyImportObject(obj) {
   let data = result.data;
   const ensured = calc.ensureCurrentBudget(data);
   data = ensured.data;
-  state.setData(data);
+  state.setDataSilent(data);
+  if (result.notePresets) {
+    notePresets.save(result.notePresets, { skipSync: true });
+  }
+  try {
+    require("scripts/webdav-sync").afterLocalSave();
+  } catch (e) {}
   if (ensured.carried) {
     $ui.toast("导入成功，已沿用上月预算");
   } else if (ensured.needSet) {

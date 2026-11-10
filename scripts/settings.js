@@ -1,5 +1,7 @@
 const update = require("scripts/update");
 const io = require("scripts/io");
+const webdavSettings = require("scripts/webdav-settings");
+const webdavSync = require("scripts/webdav-sync");
 
 const SECTION_DATA = 0;
 const SECTION_APP = 1;
@@ -20,7 +22,7 @@ function buildData() {
         type: "label",
         props: {
           height: 56,
-          text: "导出 JSON 或从剪贴板/文件覆盖导入本地全部预算数据。",
+          text: "导出 JSON（含常用备注）或从剪贴板/文件覆盖导入；也可用 WebDAV 同步 NAS。",
           textColor: $color("secondaryLabel"),
           font: $font(13),
           lines: 0
@@ -36,6 +38,14 @@ function buildData() {
           label: { text: "导入数据", textColor: $color("label") },
           value: { text: "›", textColor: $color("tertiaryLabel") },
           action: "import"
+        },
+        {
+          label: { text: "WebDAV 同步", textColor: $color("label") },
+          value: {
+            text: webdavSync.isConfigured() ? "已启用 ›" : "›",
+            textColor: $color("tertiaryLabel")
+          },
+          action: "webdav"
         }
       ]
     },
@@ -118,6 +128,11 @@ function open(changedHandler) {
                 });
               } else if (row.action === "import") {
                 io.showMenu(function() {
+                  refreshList();
+                  if (onChanged) onChanged();
+                });
+              } else if (row.action === "webdav") {
+                webdavSettings.open(function() {
                   refreshList();
                   if (onChanged) onChanged();
                 });

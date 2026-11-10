@@ -11,6 +11,17 @@ function init() {
     surplus: surplus
   });
   state.reload();
+  try {
+    const webdavSync = require("scripts/webdav-sync");
+    webdavSync.onAppAppear();
+    if ($app && typeof $app.listen === "function") {
+      $app.listen({
+        resume: function() {
+          webdavSync.onAppAppear();
+        }
+      });
+    }
+  } catch (e) {}
   home.render();
   const notices = state.takeBootNotices();
   if (notices.length > 0) {
