@@ -57,7 +57,7 @@ function writeMeta(meta) {
 
 function getPassword() {
   try {
-    const v = $keychain.get(KEYCHAIN_KEY, { domain: KEYCHAIN_DOMAIN });
+    const v = $keychain.get(KEYCHAIN_KEY, KEYCHAIN_DOMAIN);
     if (v === undefined || v === null) return "";
     return String(v);
   } catch (e) {
