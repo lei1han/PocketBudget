@@ -36,7 +36,8 @@ PocketBudget — 本地个人月度预算：设当月预算、记消费、分期
 - 首页「备注 ›」：常用备注的增删改（记一笔时点选）；与预算数据独立存储
 
 ### 设置
-- 仅保留「数据」（导出/导入 JSON）与「应用」（检查更新）
+- 「数据」：导出/导入 JSON（含常用备注）、**WebDAV 同步**（HTTPS 整包快照至 NAS）
+- 「应用」：检查更新
 
 ### 按月统计
 - 顶卡（高 96）展示**累计结余**；下列各月卡片行（高 88）上下两层展示月份与「预算 · 占用/支出 · 结余」
@@ -78,7 +79,8 @@ PocketBudget — 本地个人月度预算：设当月预算、记消费、分期
   "budgets": [{ "yearMonth": "2026-11", "amount": 5000 }],
   "expenses": [{ "id": "…", "amount": 12.5, "note": "", "at": "ISO", "yearMonth": "2026-11" }],
   "installments": [{ "id": "…", "total": 1200, "periods": 3, "perAmount": [400,400,400], "startMonth": "2026-11", "note": "", "status": "active" }],
-  "installmentItems": [{ "id": "…", "planId": "…", "yearMonth": "2026-11", "seq": 1, "amount": 400, "active": true }]
+  "installmentItems": [{ "id": "…", "planId": "…", "yearMonth": "2026-11", "seq": 1, "amount": 400, "active": true }],
+  "notePresets": { "version": 1, "presets": ["餐饮", "交通"] }
 }
 ```
 
@@ -119,9 +121,13 @@ PocketBudget — 本地个人月度预算：设当月预算、记消费、分期
 
 注意：更新仅替换脚本安装包，不会上传或覆盖 `data/budget-v1.json` 等本地预算数据。
 
+## WebDAV 同步（v1.4+）
+
+设置 → **WebDAV 同步**：填写 NAS 的 **https://** WebDAV 地址、账号、远程路径（默认 `/PocketBudget/pocketbudget.json`）。启用后打开 App 自动拉取，本地保存后自动推送；也可「测试连接」「立即同步」。外网需 NAS 可通过 HTTPS 或 VPN 访问。详见 `docs/REQUIREMENTS.md`。
+
 ## 本版不做
 
-分类/图表、多账户币种、预算数据云同步、自动导入、小组件/捷径。
+分类/图表、多账户币种、iCloud/自建云、逐条合并、自动导入、小组件/捷径。
 
 ## 目录结构
 

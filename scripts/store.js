@@ -75,10 +75,18 @@ function save(data) {
   return !!ok;
 }
 
-function exportObject(data) {
+function exportObject(data, notePresetList) {
   const payload = normalize(data);
   payload.version = VERSION;
   payload.exportedAt = new Date().toISOString();
+  if (notePresetList !== undefined) {
+    let presets = notePresetList;
+    if (!Array.isArray(presets)) {
+      const notePresets = require("scripts/note-presets");
+      presets = notePresets.load();
+    }
+    payload.notePresets = { version: 1, presets: presets.slice() };
+  }
   return payload;
 }
 
@@ -95,7 +103,17 @@ function validateImport(obj) {
   if (!Array.isArray(obj.installments) || !Array.isArray(obj.installmentItems)) {
     return { ok: false, message: "缺少 installments/installmentItems 数组" };
   }
-  return { ok: true, data: normalize(obj) };
+  let presets = null;
+  if (obj.notePresets != null) {
+    if (typeof obj.notePresets === "object" && Array.isArray(obj.notePresets.presets)) {
+      presets = obj.notePresets.presets;
+    } else if (Array.isArray(obj.notePresets)) {
+      presets = obj.notePresets;
+    } else {
+      return { ok: false, message: "notePresets 格式无效" };
+    }
+  }
+  return { ok: true, data: normalize(obj), notePresets: presets };
 }
 
 module.exports = {

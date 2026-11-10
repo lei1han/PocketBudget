@@ -9,9 +9,18 @@ function getData() {
   return data;
 }
 
+function setDataSilent(next) {
+  data = next;
+  store.save(data);
+  return data;
+}
+
 function setData(next) {
   data = next;
   store.save(data);
+  try {
+    require("scripts/webdav-sync").afterLocalSave();
+  } catch (e) {}
   return data;
 }
 
@@ -22,6 +31,9 @@ function reload() {
   if (ensured.carried) {
     data = ensured.data;
     store.save(data);
+    try {
+      require("scripts/webdav-sync").afterLocalSave();
+    } catch (e) {}
     bootNotices.push(
       "已沿用 " + ensured.from + " 预算 " + util.formatMoney(ensured.amount) + " 至本月"
     );
@@ -40,6 +52,7 @@ function takeBootNotices() {
 module.exports = {
   getData,
   setData,
+  setDataSilent,
   reload,
   takeBootNotices
 };

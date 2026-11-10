@@ -51,8 +51,9 @@ function load() {
   return DEFAULT_PRESETS.slice();
 }
 
-function save(presets) {
+function save(presets, options) {
   const list = normalizeList(presets);
+  const skipSync = options && options.skipSync;
   ensureDir();
   const payload = { version: 1, presets: list };
   $file.write({
@@ -60,6 +61,11 @@ function save(presets) {
     path: PRESETS_PATH
   });
   mirrorCache(list);
+  if (!skipSync) {
+    try {
+      require("scripts/webdav-sync").afterLocalSave();
+    } catch (e) {}
+  }
   return list;
 }
 
