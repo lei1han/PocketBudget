@@ -28,7 +28,7 @@ function refreshTimeLabel() {
 function pickPresetMenu() {
   const presets = notePresets.load();
   if (!presets.length) {
-    $ui.toast("暂无预设，请先在「设置」中添加");
+    $ui.toast("暂无预设，请先在「备注」中添加");
     return;
   }
   $ui.menu({
