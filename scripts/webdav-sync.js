@@ -6,7 +6,8 @@ const calc = require("scripts/calc");
 const SCHEMA_VERSION = 1;
 const PREFS_KEY = "webdav_sync_prefs";
 const META_KEY = "webdav_sync_meta";
-const KEYCHAIN_KEY = "webdav_sync_password";
+const KEYCHAIN_DOMAIN = "PocketBudget.webdav";
+const KEYCHAIN_KEY = "password";
 const DEFAULT_REMOTE_PATH = "/PocketBudget/pocketbudget.json";
 const UA = "PocketBudget-WebDAV/1.4";
 
@@ -56,7 +57,7 @@ function writeMeta(meta) {
 
 function getPassword() {
   try {
-    const v = $keychain.get(KEYCHAIN_KEY);
+    const v = $keychain.get(KEYCHAIN_KEY, { domain: KEYCHAIN_DOMAIN });
     if (v === undefined || v === null) return "";
     return String(v);
   } catch (e) {
@@ -67,9 +68,9 @@ function getPassword() {
 function setPassword(value) {
   try {
     if (!value) {
-      $keychain.remove(KEYCHAIN_KEY);
+      $keychain.remove(KEYCHAIN_KEY, { domain: KEYCHAIN_DOMAIN });
     } else {
-      $keychain.set(KEYCHAIN_KEY, String(value));
+      $keychain.set(KEYCHAIN_KEY, String(value), { domain: KEYCHAIN_DOMAIN });
     }
   } catch (e) {}
 }
@@ -125,18 +126,18 @@ function joinUrl(base, path) {
 
 function basicAuthHeader(username, password) {
   const token = String(username || "") + ":" + String(password || "");
-  let encoded = "";
-  try {
-    if (typeof $crypto !== "undefined" && $crypto.encode) {
-      encoded = $crypto.encode({ string: token, encoder: "base64" });
-    }
-  } catch (e) {}
-  if (!encoded) {
-    try {
-      encoded = btoa(token);
-    } catch (e2) {}
+  if (!$text || typeof $text.base64Encode !== "function") {
+    return { ok: false, message: "认证编码不可用" };
   }
-  return "Basic " + encoded;
+  try {
+    const encoded = $text.base64Encode(token);
+    if (!encoded) {
+      return { ok: false, message: "认证编码失败" };
+    }
+    return { ok: true, header: "Basic " + encoded };
+  } catch (e) {
+    return { ok: false, message: "认证编码失败" };
+  }
 }
 
 function friendlyHttpError(resp, action) {
@@ -160,7 +161,12 @@ function webdavRequest(opts, handler) {
     opts.headers || {}
   );
   if (opts.auth) {
-    headers.Authorization = basicAuthHeader(opts.auth.user, opts.auth.pass);
+    const authHdr = basicAuthHeader(opts.auth.user, opts.auth.pass);
+    if (!authHdr.ok) {
+      handler({ error: { message: authHdr.message || "认证编码失败" } });
+      return;
+    }
+    headers.Authorization = authHdr.header;
   }
   const req = {
     url: url,
@@ -283,7 +289,7 @@ function validateSnapshot(obj) {
   }
   const imported = store.validateImport(obj);
   if (!imported.ok) return imported;
-  let presets = [];
+  let presets = null;
   if (obj.notePresets && typeof obj.notePresets === "object") {
     if (!Array.isArray(obj.notePresets.presets)) {
       return { ok: false, message: "notePresets.presets 必须是数组" };
@@ -325,7 +331,13 @@ function saveConfig(partial) {
 function recordSyncStatus(ok, message) {
   const meta = readMeta();
   meta.lastSyncAt = new Date().toISOString();
-  meta.lastSyncStatus = ok ? "成功" : String(message || "失败").slice(0, 200);
+  if (ok) {
+    meta.lastSyncStatus = message
+      ? String(message).slice(0, 200)
+      : "成功";
+  } else {
+    meta.lastSyncStatus = String(message || "失败").slice(0, 200);
+  }
   writeMeta(meta);
   return meta;
 }
@@ -352,7 +364,9 @@ function applyRemoteSnapshot(parsed) {
   data = ensured.data;
   const state = require("scripts/state");
   state.setDataSilent(data);
-  notePresets.save(valid.presets, { skipSync: true });
+  if (valid.presets != null) {
+    notePresets.save(valid.presets, { skipSync: true });
+  }
   clearDirtyAfterPush(valid.revision);
   try {
     require("scripts/home").refresh();
@@ -401,11 +415,12 @@ function fetchRemote(auth, fileUrl) {
 }
 
 function putSnapshot(auth, fileUrl, snapshot) {
-  const body = JSON.stringify(snapshot, null, 2);
+  const text = JSON.stringify(snapshot, null, 2);
   const headers = {
     "Content-Type": "application/json; charset=utf-8",
     Overwrite: "T"
   };
+  const body = $data({ string: text });
   return requestAsync("PUT", fileUrl, { auth: auth, body: body, headers: headers }).then(
     function(resp) {
       const code = httpStatus(resp);
@@ -435,7 +450,7 @@ function pushLocal(auth, fileUrl) {
     .then(function(result) {
       if (result.ok) {
         clearDirtyAfterPush(snapshot.revision);
-        recordSyncStatus(true, "成功");
+        recordSyncStatus(true, "已上传");
       } else {
         recordSyncStatus(false, result.message);
       }

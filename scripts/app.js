@@ -14,10 +14,9 @@ function init() {
   try {
     const webdavSync = require("scripts/webdav-sync");
     webdavSync.onAppAppear();
-    if ($app && typeof $app.observe === "function") {
-      $app.observe({
-        event: "resume",
-        handler: function() {
+    if ($app && typeof $app.listen === "function") {
+      $app.listen({
+        resume: function() {
           webdavSync.onAppAppear();
         }
       });

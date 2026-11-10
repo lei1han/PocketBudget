@@ -157,20 +157,75 @@ function promptUsername() {
 }
 
 function promptPassword() {
-  $input.text({
-    type: $kbType.default,
-    placeholder: "输入新密码",
-    handler: function(text) {
-      if (text === undefined || text === null) return;
-      const value = String(text).trim();
-      if (!value) {
-        $ui.toast("密码未修改");
-        return;
+  $ui.push({
+    props: {
+      title: "WebDAV 密码",
+      bgcolor: $color("insetGroupedBackground")
+    },
+    views: [
+      {
+        type: "view",
+        props: {
+          id: "webdav-pwd-card",
+          bgcolor: $color("systemBackground"),
+          radius: 14,
+          clipsToBounds: true
+        },
+        layout: function(make) {
+          make.left.right.inset(16);
+          make.top.inset(24);
+          make.height.equalTo(48);
+        },
+        views: [
+          {
+            type: "input",
+            props: {
+              id: "webdav-pwd-input",
+              type: $kbType.default,
+              secure: true,
+              placeholder: "输入密码",
+              font: $font(17),
+              clearButtonMode: 1
+            },
+            layout: function(make, view) {
+              make.left.right.inset(16);
+              make.centerY.equalTo(view.super);
+            }
+          }
+        ]
+      },
+      {
+        type: "button",
+        props: {
+          title: "保存到钥匙串",
+          bgcolor: $color(COLOR_CTA),
+          titleColor: $color("#FFFFFF"),
+          radius: 12,
+          font: $font("semibold", 17),
+          height: 48
+        },
+        layout: function(make) {
+          make.left.right.inset(16);
+          make.top.equalTo($("webdav-pwd-card").bottom).offset(24);
+          make.height.equalTo(48);
+        },
+        events: {
+          tapped: function() {
+            const input = $("webdav-pwd-input");
+            const value = input ? String(input.text || "").trim() : "";
+            if (!value) {
+              $ui.toast("密码不能为空");
+              return;
+            }
+            webdavSync.setPassword(value);
+            if (input) input.text = "";
+            $ui.pop();
+            refreshList();
+            $ui.toast("密码已保存");
+          }
+        }
       }
-      webdavSync.setPassword(value);
-      refreshList();
-      $ui.toast("密码已保存");
-    }
+    ]
   });
 }
 
