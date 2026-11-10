@@ -12,7 +12,7 @@ const COLOR_OK = "#007AFF";
 const COLOR_WARN = "#D32F2F";
 const COLOR_BTN_PRIMARY = "#2C2C2E";
 const PREVIEW_LIMIT = 4;
-const PREVIEW_ROW_H = 58;
+const PREVIEW_ROW_H = 44;
 const PREVIEW_HEADER_H = 42;
 const PREVIEW_MORE_H = 52;
 const CARD_RADIUS = 14;
@@ -117,15 +117,18 @@ function previewListHeight(itemCount) {
   return n * PREVIEW_ROW_H;
 }
 
+function previewDateShort(at) {
+  return util.formatDateTime(at).slice(5, 10);
+}
+
 function buildPreviewListData(items) {
   const rows = items || previewExpenses();
   if (rows.length === 0) {
     return [
       {
-        title: { text: "本月暂无消费", textColor: $color("secondaryLabel") },
-        subtitle: { text: "", textColor: $color("clear") },
+        date: { text: "本月暂无消费", textColor: $color("secondaryLabel") },
         amount: { text: "", textColor: $color("clear") },
-        date: { text: "", textColor: $color("clear") }
+        title: { text: "", textColor: $color("clear") }
       }
     ];
   }
@@ -133,16 +136,15 @@ function buildPreviewListData(items) {
     const note = e.note ? String(e.note).trim() : "";
     const title = note || "消费";
     return {
-      title: { text: title, textColor: $color("label") },
-      subtitle: { text: " ", textColor: $color("clear") },
+      date: {
+        text: previewDateShort(e.at),
+        textColor: $color("secondaryLabel")
+      },
       amount: {
         text: "-" + formatAmountShort(e.amount),
         textColor: $color("label")
       },
-      date: {
-        text: util.formatDateTime(e.at).slice(0, 10),
-        textColor: $color("tertiaryLabel")
-      }
+      title: { text: title, textColor: $color("label") }
     };
   });
 }
@@ -150,49 +152,28 @@ function buildPreviewListData(items) {
 const previewListTemplate = {
   views: [
     {
-      type: "view",
-      props: {
-        bgcolor: $color("tertiarySystemFill"),
-        radius: 8
-      },
+      type: "label",
+      props: { id: "date", font: $font(13), lines: 1 },
       layout: function(make, view) {
         make.left.inset(14);
         make.centerY.equalTo(view.super);
-        make.width.height.equalTo(34);
       }
     },
     {
       type: "label",
-      props: { id: "title", font: $font(16), lines: 1 },
+      props: { id: "amount", font: $font("semibold", 15), lines: 1 },
       layout: function(make, view) {
-        make.left.equalTo(58);
-        make.top.inset(11);
-        make.right.lessThanOrEqualTo(view.super).inset(96);
+        make.left.equalTo($("date").right).offset(8);
+        make.centerY.equalTo(view.super);
       }
     },
     {
       type: "label",
-      props: { id: "subtitle", font: $font(12), lines: 1 },
+      props: { id: "title", font: $font(15), lines: 1 },
       layout: function(make, view) {
-        make.left.equalTo(58);
-        make.bottom.inset(11);
-        make.right.lessThanOrEqualTo(view.super).inset(96);
-      }
-    },
-    {
-      type: "label",
-      props: { id: "amount", font: $font("semibold", 16), align: $align.right },
-      layout: function(make, view) {
+        make.left.equalTo($("amount").right).offset(10);
         make.right.inset(14);
-        make.top.inset(11);
-      }
-    },
-    {
-      type: "label",
-      props: { id: "date", font: $font(12), align: $align.right },
-      layout: function(make, view) {
-        make.right.inset(14);
-        make.bottom.inset(11);
+        make.centerY.equalTo(view.super);
       }
     }
   ]
