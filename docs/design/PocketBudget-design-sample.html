@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PocketBudget 设计规范 · HTML 样例</title>
+  <style>
+    :root {
+      --label: #000000;
+      --secondary: rgba(60, 60, 67, 0.60);
+      --tertiary: rgba(60, 60, 67, 0.30);
+      --grouped: #f2f2f7;
+      --bg: #ffffff;
+      --sep: rgba(60, 60, 67, 0.29);
+      --sep-alpha: 0.55;
+      --blue: #007aff;
+      --green: #2e7d32;
+      --red: #d32f2f;
+      --ink-btn: #2c2c2e;
+      --on-color: #ffffff;
+      --page-bg: #e8e8ed;
+      --page-ink: #1d1d1f;
+      --page-muted: #6e6e73;
+      --phone-bezel: #1c1c1e;
+      --status: #000000;
+    }
+    html[data-theme="dark"] {
+      --label: #ffffff;
+      --secondary: rgba(235, 235, 245, 0.60);
+      --tertiary: rgba(235, 235, 245, 0.30);
+      --grouped: #000000;
+      --bg: #1c1c1e;
+      --sep: rgba(84, 84, 88, 0.65);
+      --page-bg: #111113;
+      --page-ink: #f5f5f7;
+      --page-muted: #a1a1a6;
+      --phone-bezel: #000000;
+      --status: #ffffff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", sans-serif;
+      background: var(--page-bg);
+      color: var(--page-ink);
+      line-height: 1.4;
+      -webkit-font-smoothing: antialiased;
+    }
+    .wrap { max-width: 2200px; margin: 0 auto; padding: 32px 24px 64px; }
+    .head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+    .head h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+    .head p { color: var(--page-muted); font-size: 14px; margin-top: 6px; max-width: 40em; }
+    .toggle {
+      appearance: none; border: 0; border-radius: 10px;
+      background: var(--page-ink); color: var(--page-bg);
+      font: inherit; font-size: 14px; font-weight: 600;
+      padding: 8px 14px; cursor: pointer;
+    }
+    .tokens {
+      display: flex; flex-wrap: wrap; gap: 8px 10px;
+      margin-bottom: 28px; color: var(--page-muted); font-size: 13px;
+    }
+    .tokens span {
+      background: color-mix(in srgb, var(--page-ink) 6%, transparent);
+      border-radius: 8px; padding: 6px 10px; white-space: nowrap;
+    }
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(414px, 1fr));
+      gap: 40px 28px;
+      justify-items: center;
+    }
+    figure { width: min(100%, 414px); }
+    figcaption {
+      font-size: 13px; font-weight: 600; color: var(--page-muted);
+      text-align: center; margin-bottom: 10px;
+    }
+
+    /* Device */
+    .phone {
+      width: 414px; height: 964px; margin: 0 auto;
+      background: var(--phone-bezel);
+      border-radius: 54px; padding: 12px;
+      box-shadow: 0 18px 40px rgba(0,0,0,.22);
+    }
+    .screen {
+      width: 390px; height: 940px;
+      background: var(--grouped);
+      color: var(--label);
+      border-radius: 42px;
+      overflow: hidden;
+      position: relative;
+      display: flex; flex-direction: column;
+    }
+    .status {
+      height: 48px; flex: none;
+      display: flex; align-items: flex-end; justify-content: space-between;
+      padding: 0 22px 8px; font-size: 13px; font-weight: 600; color: var(--status);
+    }
+    .island {
+      position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+      width: 92px; height: 26px; background: #000; border-radius: 16px; z-index: 3;
+    }
+    .nav {
+      height: 44px; flex: none;
+      display: flex; align-items: center; justify-content: center;
+      position: relative; padding: 0 16px;
+      font-size: 17px; font-weight: 600; color: var(--label);
+    }
+    .nav .back, .nav .action {
+      position: absolute; top: 0; bottom: 0; display: flex; align-items: center;
+      font-size: 17px; font-weight: 400; color: var(--blue);
+    }
+    .nav .back { left: 16px; }
+    .nav .action { right: 16px; }
+    .scroll { flex: 1; overflow: auto; padding-bottom: 34px; }
+    .scroll::-webkit-scrollbar { width: 0; height: 0; }
+    .home-indicator {
+      position: absolute; left: 50%; bottom: 6px; transform: translateX(-50%);
+      width: 120px; height: 5px; border-radius: 3px;
+      background: var(--label); opacity: .22; z-index: 3; pointer-events: none;
+    }
+
+    .card {
+      background: var(--bg);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .sep {
+      height: 0.33px;
+      background: var(--sep);
+      opacity: var(--sep-alpha);
+    }
+    .sep-inset { margin: 0 16px; }
+
+    /* Type scale helpers */
+    .t22 { font-size: 22px; font-weight: 700; }
+    .t18 { font-size: 18px; font-weight: 700; }
+    .t17 { font-size: 17px; font-weight: 400; }
+    .t17s { font-size: 17px; font-weight: 600; }
+    .t15 { font-size: 15px; font-weight: 400; }
+    .t15s { font-size: 15px; font-weight: 600; }
+    .t13 { font-size: 13px; font-weight: 400; }
+    .muted { color: var(--secondary); }
+    .dim { color: var(--tertiary); }
+    .pos { color: var(--green); }
+    .neg { color: var(--red); }
+    .link { color: var(--blue); }
+    .ellipsis { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+    /* Home */
+    .pad-x { padding-left: 16px; padding-right: 16px; }
+    .home { padding: 8px 16px 34px; }
+    .top-card { padding-bottom: 2px; }
+    .ring-wrap {
+      position: relative; width: 116px; height: 116px;
+      margin: 18px auto 0;
+    }
+    .ring-wrap svg { display: block; width: 116px; height: 116px; }
+    .ring-center {
+      position: absolute; inset: 10px;
+      display: flex; align-items: center; justify-content: center;
+      text-align: center; font-size: 18px; font-weight: 700; line-height: 1.15;
+      color: var(--green); max-width: 100px; margin: 0 auto;
+    }
+    .budget-occ {
+      margin-top: 10px; text-align: center;
+      font-size: 13px; color: var(--secondary);
+    }
+    .surplus-line {
+      height: 46px; display: flex; align-items: center; justify-content: center;
+      font-size: 15px; color: var(--label);
+    }
+    .btn-primary, .btn-blue {
+      height: 48px; border: 0; border-radius: 12px; width: 100%;
+      font-size: 17px; font-weight: 600; cursor: default;
+    }
+    .btn-primary { margin-top: 14px; background: var(--ink-btn); color: var(--on-color); }
+    html[data-theme="dark"] .btn-primary { background: #3a3a3c; }
+    .btn-blue { background: var(--blue); color: var(--on-color); }
+    .block-gap { height: 24px; }
+
+    .preview-head, .more, .nav-row, .kv-row, .form-row, .settings-row {
+      height: 48px; display: flex; align-items: center;
+      padding: 0 16px;
+    }
+    .preview-head { justify-content: space-between; }
+    .preview-row {
+      height: 48px; display: flex; align-items: center; gap: 10px;
+      padding: 0 16px;
+    }
+    .preview-row .date { flex: none; font-size: 13px; color: var(--secondary); font-variant-numeric: tabular-nums; }
+    .preview-row .amt { flex: none; font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .preview-row .note { flex: 1; min-width: 0; font-size: 15px; }
+    .more { justify-content: center; font-size: 17px; color: var(--blue); }
+    .nav-row { justify-content: space-between; font-size: 17px; }
+    .chev { color: var(--tertiary); font-size: 17px; }
+
+    /* Form / settings */
+    .grouped { padding: 8px 16px 0; }
+    .section-title {
+      font-size: 13px; color: var(--secondary);
+      padding: 20px 16px 6px; text-transform: none;
+    }
+    .grouped .card + .section-title { padding-top: 24px; }
+    .footer-note {
+      font-size: 13px; color: var(--secondary);
+      padding: 8px 16px 0; line-height: 1.35;
+    }
+    .form-page { display: flex; flex-direction: column; height: 100%; }
+    .form-body { flex: 1; overflow: auto; }
+    .form-bar {
+      flex: none; height: 64px; background: var(--grouped);
+      padding: 8px 16px 0; margin-bottom: 18px;
+    }
+    .input-like { font-size: 17px; color: var(--secondary); width: 100%; }
+    .time-row { justify-content: space-between; }
+
+    /* Expense list */
+    .month-bar {
+      height: 44px; display: flex; align-items: center; justify-content: space-between;
+      padding: 0 8px 0 8px; background: var(--bg);
+    }
+    .month-bar button {
+      border: 0; background: none; color: var(--blue);
+      font: inherit; font-size: 17px; width: 72px;
+    }
+    .record {
+      height: 56px; padding: 8px 16px; background: var(--bg);
+      display: flex; flex-direction: column; justify-content: space-between;
+    }
+    .record .title { font-size: 17px; }
+    .record .sub { font-size: 13px; color: var(--secondary); }
+    .list-page { background: var(--bg); min-height: 100%; }
+
+    /* Surplus */
+    .summary {
+      height: 96px; display: flex; align-items: center; justify-content: center;
+      text-align: center; padding: 0 16px; margin: 8px 16px 0;
+    }
+    .month-stat {
+      height: 88px; padding: 18px 16px;
+      display: flex; flex-direction: column; justify-content: space-between;
+    }
+    .month-stat .ym { font-size: 17px; font-weight: 600; }
+    .month-stat .detail { font-size: 13px; color: var(--secondary); line-height: 1.35; }
+    .surplus-list { margin: 24px 16px 0; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="head">
+      <div>
+        <h1>PocketBudget 设计规范 · HTML 样例</h1>
+        <p>按 2026-11-10 目标规范渲染（字号 22 / 18 / 17 / 15 / 13，单行 48，边距 16）。这是规范样例，不是当前线上版的逐像素还原。</p>
+      </div>
+      <button class="toggle" type="button" id="themeBtn">切换深色</button>
+    </div>
+    <div class="tokens">
+      <span>字号 22 / 18 / 17 / 15 / 13</span>
+      <span>单行 48 · 双行记录 56 · 统计行 88</span>
+      <span>边距 16 · 字段间距 10</span>
+      <span>卡片圆角 14 · 按钮圆角 12</span>
+      <span>正 #2E7D32 · 负 #D32F2F · 链接 #007AFF</span>
+    </div>
+
+    <div class="gallery">
+      <!-- 首页 -->
+      <figure>
+        <figcaption>首页</figcaption>
+        <div class="phone">
+          <div class="screen">
+            <div class="island"></div>
+            <div class="status"><span>14:50</span><span>5G  ▮▮▮▮</span></div>
+            <div class="nav">PocketBudget</div>
+            <div class="scroll home">
+              <div class="card top-card">
+                <div class="ring-wrap">
+                  <svg viewBox="0 0 116 116" aria-hidden="true">
+                    <circle cx="58" cy="58" r="45.5" fill="none" stroke="rgba(128,128,128,.22)" stroke-width="12.4"/>
+                    <circle cx="58" cy="58" r="45.5" fill="none" stroke="#007AFF" stroke-width="12.4" stroke-linecap="round"
+                      stroke-dasharray="115.8 286.0" stroke-dashoffset="0" transform="rotate(-90 58 58)"/>
+                  </svg>
+                  <div class="ring-center">剩余 ¥4,760.00</div>
+                </div>
+                <div class="budget-occ">预算 8000 · 占用 3240</div>
+                <div class="sep sep-inset" style="margin-top:14px"></div>
+                <div class="surplus-line">本月结余 +¥4,760.00 · 累计 +¥8,940.00 ›</div>
+              </div>
+              <button class="btn-primary" type="button">记一笔</button>
+              <div class="block-gap"></div>
+              <div class="card">
+                <div class="preview-head">
+                  <span class="t17s">本月明细</span>
+                  <span class="chev">›</span>
+                </div>
+                <div class="sep"></div>
+                <div class="preview-row">
+                  <span class="date">11-10</span>
+                  <span class="amt">-36</span>
+                  <span class="note ellipsis">午餐</span>
+                </div>
+                <div class="sep"></div>
+                <div class="preview-row">
+                  <span class="date">11-08</span>
+                  <span class="amt">-128</span>
+                  <span class="note ellipsis">超市采购</span>
+                </div>
+                <div class="sep"></div>
+                <div class="preview-row">
+                  <span class="date">11-07</span>
+                  <span class="amt">-1,200</span>
+                  <span class="note ellipsis">水电燃气</span>
+                </div>
+                <div class="sep"></div>
+                <div class="preview-row">
+                  <span class="date">11-03</span>
+                  <span class="amt">-45.5</span>
+                  <span class="note ellipsis">地铁</span>
+                </div>
+                <div class="sep"></div>
+                <div class="more">更多  ›</div>
+              </div>
+              <div class="block-gap"></div>
+              <div class="card">
+                <div class="nav-row"><span>分期</span><span class="chev">›</span></div>
+                <div class="sep sep-inset"></div>
+                <div class="nav-row"><span>预算</span><span class="chev">›</span></div>
+                <div class="sep sep-inset"></div>
+                <div class="nav-row"><span>备注</span><span class="chev">›</span></div>
+                <div class="sep sep-inset"></div>
+                <div class="nav-row"><span>设置</span><span class="chev">›</span></div>
+              </div>
+            </div>
+            <div class="home-indicator"></div>
+          </div>
+        </div>
+      </figure>
+
+      <!-- 记一笔 -->
+      <figure>
+        <figcaption>记一笔</figcaption>
+        <div class="phone">
+          <div class="screen">
+            <div class="island"></div>
+            <div class="status"><span>14:50</span><span>5G  ▮▮▮▮</span></div>
+            <div class="nav">
+              <span class="back">‹ 返回</span>
+              记一笔
+              <span class="action">记账</span>
+            </div>
+            <div class="form-page">
+              <div class="form-body grouped">
+                <div class="section-title" style="padding-top:8px">金额</div>
+                <div class="card">
+                  <div class="form-row"><span class="input-like">必填，如 36.5</span></div>
+                </div>
+                <div class="section-title">备注</div>
+                <div class="card">
+                  <div class="form-row time-row">
+                    <span class="t17">选择常用备注</span>
+                    <span class="chev">›</span>
+                  </div>
+                  <div class="sep sep-inset"></div>
+                  <div class="form-row"><span class="input-like">可空，或点上方选择常用备注</span></div>
+                </div>
+                <div class="section-title">时间</div>
+                <div class="card">
+                  <div class="form-row time-row">
+                    <span class="t17">2026-11-10 14:50</span>
+                    <span class="t17 link">更改</span>
+                  </div>
+                </div>
+              </div>
+              <div class="form-bar">
+                <button class="btn-blue" type="button">确认记账</button>
+              </div>
+            </div>
+            <div class="home-indicator"></div>
+          </div>
+        </div>
+      </figure>
+
+      <!-- 消费明细 -->
+      <figure>
+        <figcaption>消费明细</figcaption>
+        <div class="phone">
+          <div class="screen" style="background:var(--bg)">
+            <div class="island"></div>
+            <div class="status"><span>14:50</span><span>5G  ▮▮▮▮</span></div>
+            <div class="nav">
+              <span class="back">‹ 返回</span>
+              消费明细
+              <span class="action">记一笔</span>
+            </div>
+            <div class="month-bar">
+              <button type="button">‹ 上月</button>
+              <span class="t17s">2026-11</span>
+              <button type="button">下月 ›</button>
+            </div>
+            <div class="sep"></div>
+            <div class="scroll list-page">
+              <div class="record">
+                <div class="title">¥36.00&nbsp;&nbsp;午餐</div>
+                <div class="sub">2026-11-10 12:18</div>
+              </div>
+              <div class="sep"></div>
+              <div class="record">
+                <div class="title">¥128.00&nbsp;&nbsp;超市采购</div>
+                <div class="sub">2026-11-08 18:42</div>
+              </div>
+              <div class="sep"></div>
+              <div class="record">
+                <div class="title">¥1,200.00&nbsp;&nbsp;水电燃气</div>
+                <div class="sub">2026-11-07 09:05</div>
+              </div>
+              <div class="sep"></div>
+              <div class="record">
+                <div class="title">¥45.50&nbsp;&nbsp;地铁</div>
+                <div class="sub">2026-11-03 08:21</div>
+              </div>
+              <div class="sep"></div>
+              <div class="record">
+                <div class="title">¥68.00&nbsp;&nbsp;咖啡</div>
+                <div class="sub">2026-11-02 15:30</div>
+              </div>
+            </div>
+            <div class="home-indicator"></div>
+          </div>
+        </div>
+      </figure>
+
+      <!-- 按月统计 -->
+      <figure>
+        <figcaption>按月统计</figcaption>
+        <div class="phone">
+          <div class="screen">
+            <div class="island"></div>
+            <div class="status"><span>14:50</span><span>5G  ▮▮▮▮</span></div>
+            <div class="nav">
+              <span class="back">‹ 返回</span>
+              按月统计
+            </div>
+            <div class="scroll">
+              <div class="card summary">
+                <div class="t22 pos">累计结余 +¥8,940.00</div>
+              </div>
+              <div class="card surplus-list">
+                <div class="month-stat">
+                  <div class="ym">2026-11</div>
+                  <div class="detail">预算 8000　占用 3240　结余 +4760</div>
+                </div>
+                <div class="sep"></div>
+                <div class="month-stat">
+                  <div class="ym">2026-10</div>
+                  <div class="detail">预算 8000　支出 7,180　结余 +820</div>
+                </div>
+                <div class="sep"></div>
+                <div class="month-stat">
+                  <div class="ym">2026-09</div>
+                  <div class="detail">预算 8000　支出 4,640　结余 +3,360</div>
+                </div>
+              </div>
+            </div>
+            <div class="home-indicator"></div>
+          </div>
+        </div>
+      </figure>
+
+      <!-- 设置 -->
+      <figure>
+        <figcaption>设置</figcaption>
+        <div class="phone">
+          <div class="screen">
+            <div class="island"></div>
+            <div class="status"><span>14:50</span><span>5G  ▮▮▮▮</span></div>
+            <div class="nav">
+              <span class="back">‹ 返回</span>
+              设置
+            </div>
+            <div class="scroll grouped">
+              <div class="section-title" style="padding-top:8px">数据</div>
+              <div class="card">
+                <div class="settings-row nav-row"><span>导出 JSON</span><span class="chev">›</span></div>
+                <div class="sep sep-inset"></div>
+                <div class="settings-row nav-row"><span>导入数据</span><span class="chev">›</span></div>
+              </div>
+              <div class="footer-note">导出 JSON 或从剪贴板/文件覆盖导入本地全部预算数据。</div>
+              <div class="section-title">应用</div>
+              <div class="card">
+                <div class="settings-row nav-row">
+                  <span>检查更新</span>
+                  <span class="t17 muted">v1.3.1</span>
+                </div>
+              </div>
+              <div class="footer-note">从 GitHub Releases 检查更新并安装 PocketBudget.box；预算数据仍在本地，不会上传。</div>
+            </div>
+            <div class="home-indicator"></div>
+          </div>
+        </div>
+      </figure>
+    </div>
+  </div>
+  <script>
+    const btn = document.getElementById("themeBtn");
+    function apply(theme) {
+      document.documentElement.setAttribute("data-theme", theme);
+      btn.textContent = theme === "dark" ? "切换浅色" : "切换深色";
+    }
+    btn.addEventListener("click", function() {
+      apply(document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark");
+    });
+  </script>
+</body>
+</html>
