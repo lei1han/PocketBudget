@@ -265,12 +265,12 @@ function openDetail(planId) {
             },
             { title: "各期预扣", rows: rows }
           ],
-          rowHeight: 44,
+          rowHeight: 48,
           template: {
             views: [
               {
                 type: "label",
-                props: { id: "title", font: $font(15) },
+                props: { id: "title", font: $font(17) },
                 layout: function(make, view) {
                   make.left.inset(16);
                   make.centerY.equalTo(view.super);
@@ -278,7 +278,7 @@ function openDetail(planId) {
               },
               {
                 type: "label",
-                props: { id: "value", font: $font(15), align: $align.right },
+                props: { id: "value", font: $font(17), align: $align.right },
                 layout: function(make, view) {
                   make.right.inset(16);
                   make.centerY.equalTo(view.super);
@@ -327,7 +327,7 @@ function open() {
             views: [
               {
                 type: "label",
-                props: { id: "title", font: $font(16) },
+                props: { id: "title", font: $font(17) },
                 layout: function(make, view) {
                   make.left.right.inset(16);
                   make.top.inset(8);
@@ -335,7 +335,7 @@ function open() {
               },
               {
                 type: "label",
-                props: { id: "subtitle", font: $font(12) },
+                props: { id: "subtitle", font: $font(13) },
                 layout: function(make, view) {
                   make.left.right.inset(16);
                   make.bottom.inset(8);

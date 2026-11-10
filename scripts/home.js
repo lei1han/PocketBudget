@@ -12,9 +12,9 @@ const COLOR_OK = "#007AFF";
 const COLOR_WARN = "#D32F2F";
 const COLOR_BTN_PRIMARY = "#2C2C2E";
 const PREVIEW_LIMIT = 4;
-const PREVIEW_ROW_H = 44;
-const PREVIEW_HEADER_H = 42;
-const PREVIEW_MORE_H = 52;
+const PREVIEW_ROW_H = 48;
+const PREVIEW_HEADER_H = 48;
+const PREVIEW_MORE_H = 48;
 const CARD_RADIUS = 14;
 const NAV_ROW_H = 48;
 const NAV_ITEMS = [
@@ -155,7 +155,7 @@ const previewListTemplate = {
       type: "label",
       props: { id: "date", font: $font(13), lines: 1 },
       layout: function(make, view) {
-        make.left.inset(14);
+        make.left.inset(16);
         make.centerY.equalTo(view.super);
       }
     },
@@ -163,7 +163,7 @@ const previewListTemplate = {
       type: "label",
       props: { id: "amount", font: $font("semibold", 15), lines: 1 },
       layout: function(make, view) {
-        make.left.equalTo($("date").right).offset(8);
+        make.left.equalTo($("date").right).offset(10);
         make.centerY.equalTo(view.super);
       }
     },
@@ -172,7 +172,7 @@ const previewListTemplate = {
       props: { id: "title", font: $font(15), lines: 1 },
       layout: function(make, view) {
         make.left.equalTo($("amount").right).offset(10);
-        make.right.inset(14);
+        make.right.inset(16);
         make.centerY.equalTo(view.super);
       }
     }
@@ -210,14 +210,14 @@ function applyPreview() {
   if (card) {
     card.remakeLayout(function(make) {
       make.left.right.inset(16);
-      make.top.equalTo($("home-actions").bottom).offset(28);
+      make.top.equalTo($("home-actions").bottom).offset(24);
     });
   }
   const navCard = $("home-nav-card");
   if (navCard) {
     navCard.remakeLayout(function(make) {
       make.left.right.inset(16);
-      make.top.equalTo($("home-preview-card").bottom).offset(28);
+      make.top.equalTo($("home-preview-card").bottom).offset(24);
       make.height.equalTo(NAV_ROW_H * NAV_ITEMS.length);
       make.bottom.inset(24);
     });
@@ -343,7 +343,7 @@ function navRowView(item, index) {
             textColor: $color("label")
           },
           layout: function(make, view) {
-            make.left.inset(14);
+            make.left.inset(16);
             make.centerY.equalTo(view.super);
           }
         },
@@ -351,12 +351,12 @@ function navRowView(item, index) {
           type: "label",
           props: {
             text: "›",
-            font: $font(18),
+            font: $font(17),
             textColor: $color("tertiaryLabel"),
             align: $align.right
           },
           layout: function(make, view) {
-            make.right.inset(14);
+            make.right.inset(16);
             make.centerY.equalTo(view.super);
           }
         }
@@ -578,7 +578,7 @@ function render() {
                 },
                 layout: function(make) {
                   make.left.right.inset(16);
-                  make.top.equalTo($("home-actions").bottom).offset(28);
+                  make.top.equalTo($("home-actions").bottom).offset(24);
                 },
                 views: [
                   {
@@ -600,25 +600,25 @@ function render() {
                         type: "label",
                         props: {
                           text: "本月明细",
-                          font: $font("bold", 17),
+                          font: $font("semibold", 17),
                           textColor: $color("label")
                         },
                         layout: function(make, view) {
-                          make.left.inset(14);
-                          make.centerY.equalTo(view.super).offset(2);
+                          make.left.inset(16);
+                          make.centerY.equalTo(view.super);
                         }
                       },
                       {
                         type: "label",
                         props: {
                           text: "›",
-                          font: $font(18),
+                          font: $font(17),
                           textColor: $color("tertiaryLabel"),
                           align: $align.right
                         },
                         layout: function(make, view) {
-                          make.right.inset(14);
-                          make.centerY.equalTo(view.super).offset(2);
+                          make.right.inset(16);
+                          make.centerY.equalTo(view.super);
                         }
                       }
                     ]
@@ -678,7 +678,7 @@ function render() {
                       title: "更多  ›",
                       bgcolor: $color("clear"),
                       titleColor: $color(COLOR_OK),
-                      font: $font(16)
+                      font: $font(17)
                     },
                     layout: function(make) {
                       make.left.right.bottom.equalTo();
@@ -703,7 +703,7 @@ function render() {
                 },
                 layout: function(make) {
                   make.left.right.inset(16);
-                  make.top.equalTo($("home-preview-card").bottom).offset(28);
+                  make.top.equalTo($("home-preview-card").bottom).offset(24);
                   make.height.equalTo(NAV_ROW_H * NAV_ITEMS.length);
                   make.bottom.inset(24);
                 },

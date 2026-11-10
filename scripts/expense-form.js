@@ -277,12 +277,12 @@ function open(onDone) {
               title: "确认记账",
               bgcolor: $color(COLOR_OK),
               titleColor: $color("#FFFFFF"),
-              font: $font("bold", 17),
+              font: $font("semibold", 17),
               radius: 12,
               clipsToBounds: true
             },
             layout: function(make, view) {
-              make.left.right.inset(20);
+              make.left.right.inset(16);
               make.top.inset(8);
               make.height.equalTo(48);
             },
