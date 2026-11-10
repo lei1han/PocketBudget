@@ -117,7 +117,7 @@ function open() {
               id: "expense-month",
               text: viewingMonth,
               align: $align.center,
-              font: $font("bold", 16)
+              font: $font("bold", 17)
             },
             layout: function(make) {
               make.center.equalTo();
@@ -147,7 +147,7 @@ function open() {
             views: [
               {
                 type: "label",
-                props: { id: "title", font: $font(16) },
+                props: { id: "title", font: $font(17) },
                 layout: function(make, view) {
                   make.left.right.inset(16);
                   make.top.inset(8);
@@ -155,7 +155,7 @@ function open() {
               },
               {
                 type: "label",
-                props: { id: "subtitle", font: $font(12) },
+                props: { id: "subtitle", font: $font(13) },
                 layout: function(make, view) {
                   make.left.right.inset(16);
                   make.bottom.inset(8);

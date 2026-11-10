@@ -72,7 +72,7 @@ const monthListTemplate = {
       type: "label",
       props: { id: "ym", font: $font("semibold", 17), lines: 1 },
       layout: function(make) {
-        make.left.right.inset(14);
+        make.left.right.inset(16);
         make.top.inset(18);
       }
     },
@@ -80,7 +80,7 @@ const monthListTemplate = {
       type: "label",
       props: { id: "detail", font: $font(13), lines: 2 },
       layout: function(make) {
-        make.left.right.inset(14);
+        make.left.right.inset(16);
         make.bottom.inset(18);
       }
     }
