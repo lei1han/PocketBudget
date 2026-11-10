@@ -15,8 +15,14 @@ const PREVIEW_LIMIT = 4;
 const PREVIEW_ROW_H = 58;
 const PREVIEW_HEADER_H = 42;
 const PREVIEW_MORE_H = 52;
-const SECONDARY_BTN_GAP = 8;
 const CARD_RADIUS = 14;
+const NAV_ROW_H = 48;
+const NAV_ITEMS = [
+  { key: "installments", label: "分期" },
+  { key: "budget", label: "预算" },
+  { key: "notes", label: "备注" },
+  { key: "settings", label: "设置" }
+];
 const BTN_RADIUS = 12;
 
 function setDeps(deps) {
@@ -226,12 +232,12 @@ function applyPreview() {
       make.top.equalTo($("home-actions").bottom).offset(28);
     });
   }
-  const secondary = $("home-secondary-actions");
-  if (secondary) {
-    secondary.remakeLayout(function(make) {
+  const navCard = $("home-nav-card");
+  if (navCard) {
+    navCard.remakeLayout(function(make) {
       make.left.right.inset(16);
       make.top.equalTo($("home-preview-card").bottom).offset(28);
-      make.height.equalTo(44);
+      make.height.equalTo(NAV_ROW_H * NAV_ITEMS.length);
       make.bottom.inset(24);
     });
   }
@@ -283,13 +289,110 @@ function openSettings() {
   });
 }
 
+function openBudgets() {
+  const budgets = require("scripts/budgets");
+  budgets.open(function() {
+    refresh();
+  });
+}
+
+function openNotes() {
+  const notes = require("scripts/notes");
+  notes.open(function() {
+    refresh();
+  });
+}
+
 function handleAction(key) {
   if (key === "add-expense") return promptAddExpense(refresh);
-  if (key === "set-budget") return promptSetBudget();
+  if (key === "budget") return openBudgets();
   if (key === "expenses") return expensesUI && expensesUI.open();
   if (key === "installments") return installmentsUI && installmentsUI.open();
   if (key === "surplus") return surplusUI && surplusUI.open();
+  if (key === "notes") return openNotes();
   if (key === "settings") return openSettings();
+}
+
+function navRowView(item, index) {
+  const rowId = "home-nav-row-" + item.key;
+  const prevKey = index > 0 ? NAV_ITEMS[index - 1].key : null;
+  const views = [];
+  if (prevKey) {
+    views.push({
+      type: "view",
+      props: {
+        id: "home-nav-sep-" + item.key,
+        bgcolor: $color("separator"),
+        alpha: 0.55
+      },
+      layout: function(make) {
+        make.left.right.inset(16);
+        make.top.equalTo($("home-nav-row-" + prevKey).bottom);
+        make.height.equalTo(0.33);
+      }
+    });
+  }
+  const rowViews = [
+    {
+      type: "view",
+      props: { id: rowId },
+      layout: function(make, view) {
+        make.left.right.equalTo(view.super);
+        if (index === 0) {
+          make.top.equalTo(view.super);
+        } else {
+          make.top.equalTo($("home-nav-sep-" + item.key).bottom);
+        }
+        make.height.equalTo(NAV_ROW_H);
+        if (index === NAV_ITEMS.length - 1) {
+          make.bottom.equalTo(view.super);
+        }
+      },
+      events: {
+        tapped: function() {
+          handleAction(item.key);
+        }
+      },
+      views: [
+        {
+          type: "label",
+          props: {
+            text: item.label,
+            font: $font(17),
+            textColor: $color("label")
+          },
+          layout: function(make, view) {
+            make.left.inset(14);
+            make.centerY.equalTo(view.super);
+          }
+        },
+        {
+          type: "label",
+          props: {
+            text: "›",
+            font: $font(18),
+            textColor: $color("tertiaryLabel"),
+            align: $align.right
+          },
+          layout: function(make, view) {
+            make.right.inset(14);
+            make.centerY.equalTo(view.super);
+          }
+        }
+      ]
+    }
+  ];
+  return views.concat(rowViews);
+}
+
+function buildNavCardViews() {
+  const nested = [];
+  NAV_ITEMS.forEach(function(item, index) {
+    navRowView(item, index).forEach(function(v) {
+      nested.push(v);
+    });
+  });
+  return nested;
 }
 
 /** @deprecated 保留给 widget / 测试对 usageInfo 的引用 */
@@ -611,90 +714,19 @@ function render() {
               },
               {
                 type: "view",
-                props: { id: "home-secondary-actions" },
+                props: {
+                  id: "home-nav-card",
+                  bgcolor: $color("systemBackground"),
+                  radius: CARD_RADIUS,
+                  clipsToBounds: true
+                },
                 layout: function(make) {
                   make.left.right.inset(16);
                   make.top.equalTo($("home-preview-card").bottom).offset(28);
-                  make.height.equalTo(44);
+                  make.height.equalTo(NAV_ROW_H * NAV_ITEMS.length);
                   make.bottom.inset(24);
                 },
-                views: [
-                  {
-                    type: "button",
-                    props: {
-                      id: "home-btn-installments",
-                      title: "分期",
-                      bgcolor: $color("systemBackground"),
-                      borderWidth: 1,
-                      borderColor: $color("opaqueSeparator"),
-                      titleColor: $color("label"),
-                      radius: 10,
-                      font: $font("medium", 16)
-                    },
-                    layout: function(make, view) {
-                      make.left.top.bottom.equalTo(view.super);
-                      make.width
-                        .equalTo(view.super)
-                        .offset(-2 * SECONDARY_BTN_GAP)
-                        .dividedBy(3);
-                    },
-                    events: {
-                      tapped: function() {
-                        handleAction("installments");
-                      }
-                    }
-                  },
-                  {
-                    type: "button",
-                    props: {
-                      id: "home-btn-budget",
-                      title: "预算",
-                      bgcolor: $color("systemBackground"),
-                      borderWidth: 1,
-                      borderColor: $color("opaqueSeparator"),
-                      titleColor: $color("label"),
-                      radius: 10,
-                      font: $font("medium", 16)
-                    },
-                    layout: function(make, view) {
-                      make.top.bottom.equalTo(view.super);
-                      make.left
-                        .equalTo($("home-btn-installments").right)
-                        .offset(SECONDARY_BTN_GAP);
-                      make.width.equalTo($("home-btn-installments"));
-                    },
-                    events: {
-                      tapped: function() {
-                        handleAction("set-budget");
-                      }
-                    }
-                  },
-                  {
-                    type: "button",
-                    props: {
-                      id: "home-btn-settings",
-                      title: "设置",
-                      bgcolor: $color("systemBackground"),
-                      borderWidth: 1,
-                      borderColor: $color("opaqueSeparator"),
-                      titleColor: $color("label"),
-                      radius: 10,
-                      font: $font("medium", 16)
-                    },
-                    layout: function(make, view) {
-                      make.top.bottom.right.equalTo(view.super);
-                      make.left
-                        .equalTo($("home-btn-budget").right)
-                        .offset(SECONDARY_BTN_GAP);
-                      make.width.equalTo($("home-btn-installments"));
-                    },
-                    events: {
-                      tapped: function() {
-                        handleAction("settings");
-                      }
-                    }
-                  }
-                ]
+                views: buildNavCardViews()
               }
             ]
           }

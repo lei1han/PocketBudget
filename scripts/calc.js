@@ -138,16 +138,35 @@ function ensureCurrentBudget(data) {
 }
 
 function setBudget(data, yearMonth, amount) {
-  const current = util.currentYearMonth();
-  if (yearMonth < current) {
-    return { ok: false, message: "历史月份预算已锁定，不可修改" };
-  }
   const amt = util.roundMoney(amount);
   if (!(amt >= 0) || isNaN(amt)) {
     return { ok: false, message: "预算金额无效" };
   }
   const budgets = (data.budgets || []).filter(b => b.yearMonth !== yearMonth);
   budgets.push({ yearMonth, amount: amt });
+  budgets.sort((a, b) => util.compareYearMonth(a.yearMonth, b.yearMonth));
+  return { ok: true, data: Object.assign({}, data, { budgets }) };
+}
+
+function setBudgetsBulk(data, yearMonths, amount) {
+  const amt = util.roundMoney(amount);
+  if (!(amt >= 0) || isNaN(amt)) {
+    return { ok: false, message: "预算金额无效" };
+  }
+  const targets = {};
+  (yearMonths || []).forEach(function(ym) {
+    if (ym) targets[ym] = true;
+  });
+  const keys = Object.keys(targets);
+  if (keys.length === 0) {
+    return { ok: false, message: "没有可设置的月份" };
+  }
+  const budgets = (data.budgets || []).filter(function(b) {
+    return !targets[b.yearMonth];
+  });
+  keys.forEach(function(ym) {
+    budgets.push({ yearMonth: ym, amount: amt });
+  });
   budgets.sort((a, b) => util.compareYearMonth(a.yearMonth, b.yearMonth));
   return { ok: true, data: Object.assign({}, data, { budgets }) };
 }
@@ -282,6 +301,7 @@ module.exports = {
   monthSnapshot,
   ensureCurrentBudget,
   setBudget,
+  setBudgetsBulk,
   addExpense,
   deleteExpense,
   createInstallment,

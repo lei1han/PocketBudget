@@ -58,7 +58,9 @@ almost(calc.effectiveBudget(data, "2026-09"), 0, "none");
 const cur = util.currentYearMonth();
 const past = util.addMonths(cur, -1);
 let r = calc.setBudget(data, past, 1000);
-assert(!r.ok, "past budget locked");
+assert(r.ok, "past budget editable");
+data = r.data;
+almost(calc.effectiveBudget(data, past), 1000, "past budget set");
 r = calc.setBudget(data, cur, 5000);
 assert(r.ok, "current budget ok");
 data = r.data;
@@ -70,6 +72,17 @@ data = r.data;
 let snap = calc.monthSnapshot(data, cur);
 almost(snap.expense, 200, "exp");
 almost(snap.monthSurplus, 4800, "surplus");
+
+const bulkMonths = [past, cur];
+r = calc.setBudgetsBulk(data, bulkMonths, 8888);
+assert(r.ok, "bulk set budgets");
+data = r.data;
+almost(calc.effectiveBudget(data, past), 8888, "bulk past");
+almost(calc.effectiveBudget(data, cur), 8888, "bulk cur");
+r = calc.setBudgetsBulk(data, [], 100);
+assert(!r.ok, "bulk empty months");
+r = calc.setBudget(data, cur, 5000);
+data = r.data;
 
 // installment
 r = calc.createInstallment(data, 900, 3, cur, "phone");
