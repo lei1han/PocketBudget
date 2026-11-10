@@ -10,9 +10,9 @@ const KEYCHAIN_KEY = "webdav_sync_password";
 const DEFAULT_REMOTE_PATH = "/PocketBudget/pocketbudget.json";
 const UA = "PocketBudget-WebDAV/1.4";
 
-let appearSyncPending = false;
-let pushTimer = null;
-let syncing = false;
+let saveSyncScheduled = false;
+let syncInFlight = false;
+let syncQueued = false;
 
 function readPrefs() {
   try {
@@ -448,7 +448,13 @@ function showConflict(remoteResult, onResolved) {
     title: "同步冲突",
     message: "本地与云端在上次同步后都有修改。请选择要保留的版本。",
     actions: [
-      { title: "取消", style: "Cancel" },
+      {
+        title: "取消",
+        style: "Cancel",
+        handler: function() {
+          if (onResolved) onResolved({ ok: false, cancelled: true });
+        }
+      },
       {
         title: "使用云端",
         handler: function() {
@@ -456,18 +462,19 @@ function showConflict(remoteResult, onResolved) {
           if (!applied.ok) {
             $ui.toast(applied.message);
             recordSyncStatus(false, applied.message);
-          } else {
-            recordSyncStatus(true, "已使用云端");
-            $ui.toast("已使用云端数据");
+            if (onResolved) onResolved(applied);
+            return;
           }
-          if (onResolved) onResolved();
+          recordSyncStatus(true, "已使用云端");
+          $ui.toast("已使用云端数据");
+          if (onResolved) onResolved({ ok: true, pulled: true });
         }
       },
       {
         title: "保留本地并上传",
         handler: function() {
-          runPush(function() {
-            if (onResolved) onResolved();
+          runPush(function(result) {
+            if (onResolved) onResolved(result || { ok: true, pushed: true });
           });
         }
       }
@@ -556,29 +563,57 @@ function runPush(onDone) {
   });
 }
 
-function syncNow(onDone) {
-  if (syncing) {
-    if (onDone) onDone({ ok: false, message: "同步进行中" });
+function finishSyncCycle(showLoading, onDone, result) {
+  if (showLoading) $ui.loading(false);
+  syncInFlight = false;
+  if (onDone) onDone(result);
+  if (syncQueued) {
+    syncQueued = false;
+    $delay(0.05, function() {
+      runSyncCycle({ showLoading: false, queueIfBusy: true });
+    });
+  }
+}
+
+function runSyncCycle(opts) {
+  opts = opts || {};
+  if (!isConfigured()) {
+    if (opts.onDone) opts.onDone({ ok: false, message: "未启用或未配置完整" });
     return;
   }
-  syncing = true;
-  $ui.loading(true);
+  if (syncInFlight) {
+    if (opts.queueIfBusy) syncQueued = true;
+    if (opts.onDone) {
+      opts.onDone({
+        ok: false,
+        message: "同步进行中",
+        queued: !!opts.queueIfBusy
+      });
+    }
+    return;
+  }
+  syncInFlight = true;
+  const showLoading = !!opts.showLoading;
+  if (showLoading) $ui.loading(true);
   runPull(function(result) {
-    $ui.loading(false);
-    syncing = false;
-    if (onDone) onDone(result);
+    finishSyncCycle(showLoading, opts.onDone, result);
   });
+}
+
+function syncNow(onDone) {
+  runSyncCycle({ showLoading: true, queueIfBusy: false, onDone: onDone });
 }
 
 function onAppAppear() {
   if (!isConfigured()) return;
-  if (appearSyncPending) return;
-  appearSyncPending = true;
   $delay(0.2, function() {
-    appearSyncPending = false;
-    runPull(function(result) {
-      if (result && result.ok && result.pulled) {
-        $ui.toast("已从云端同步");
+    runSyncCycle({
+      showLoading: false,
+      queueIfBusy: true,
+      onDone: function(result) {
+        if (result && result.ok && result.pulled) {
+          $ui.toast("已从云端同步");
+        }
       }
     });
   });
@@ -587,11 +622,11 @@ function onAppAppear() {
 function afterLocalSave() {
   if (!isConfigured()) return;
   markDirty();
-  if (pushTimer) return;
-  pushTimer = true;
+  if (saveSyncScheduled) return;
+  saveSyncScheduled = true;
   $delay(0.4, function() {
-    pushTimer = null;
-    runPush();
+    saveSyncScheduled = false;
+    runSyncCycle({ showLoading: false, queueIfBusy: true });
   });
 }
 
