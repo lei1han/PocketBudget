@@ -68,9 +68,9 @@ function getPassword() {
 function setPassword(value) {
   try {
     if (!value) {
-      $keychain.remove(KEYCHAIN_KEY, { domain: KEYCHAIN_DOMAIN });
+      $keychain.remove(KEYCHAIN_KEY, KEYCHAIN_DOMAIN);
     } else {
-      $keychain.set(KEYCHAIN_KEY, String(value), { domain: KEYCHAIN_DOMAIN });
+      $keychain.set(KEYCHAIN_KEY, String(value), KEYCHAIN_DOMAIN);
     }
   } catch (e) {}
 }
