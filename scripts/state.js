@@ -26,7 +26,7 @@ function reload() {
       "已沿用 " + ensured.from + " 预算 " + util.formatMoney(ensured.amount) + " 至本月"
     );
   } else if (ensured.needSet) {
-    bootNotices.push("本月尚未设置预算，当前按 ¥0.00 计算，请先「设预算」");
+    bootNotices.push("本月尚未设置预算，当前按 ¥0.00 计算，请打开「预算 ›」设置");
   }
   return data;
 }
