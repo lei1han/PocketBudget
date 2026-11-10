@@ -17,12 +17,12 @@
 
 一份快照 JSON，必须同时包含：
 
-- 主数据：`version`、`budgets`、`expenses`、`installments`、`installmentItems`（与现有 `data/budget-v1.json` 一致）
+- 主数据：`version`、`monthStartDay`（v1.5 起，缺省 1）、`budgets`、`expenses`、`installments`、`installmentItems`（与现有 `data/budget-v1.json` 一致）
 - 常用备注：现有 `data/note-presets-v1.json` 的内容（导出/导入与同步口径一致）
 
 快照元数据：
 
-- `schemaVersion`（首期为 1）
+- `schemaVersion`（第一期为 1；v1.5 起为 2，增加 `monthStartDay`。读取仍接受 1，缺省起始日为 1）
 - `updatedAt`（ISO 时间）
 - `revision`（本地变更递增，用于冲突判定）
 - 可选：`deviceId`（本机匿名标识）

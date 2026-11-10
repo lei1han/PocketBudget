@@ -34,7 +34,8 @@ function computeRingMetrics(snap) {
 
 function loadSnapshot() {
   const data = store.load();
-  const ym = util.currentYearMonth();
+  util.setMonthStartDay(data.monthStartDay);
+  const ym = util.yearMonthFromDate(new Date(), data.monthStartDay);
   const snap = calc.monthSnapshot(data, ym);
   const metrics = computeRingMetrics(snap);
   return Object.assign(

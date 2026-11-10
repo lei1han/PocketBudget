@@ -98,6 +98,35 @@ function budgetOccupiedLine(snap) {
   );
 }
 
+function currentTimeProgress() {
+  return util.monthTimeProgress(new Date(), util.getMonthStartDay());
+}
+
+function progressTrackColor() {
+  return $color(isDark() ? widgetData.COLOR_TRACK_DARK : widgetData.COLOR_TRACK_LIGHT);
+}
+
+function layoutProgressFill(ratio) {
+  const widthRatio = ratio > 0 ? ratio : 0.001;
+  return function(make, view) {
+    make.left.top.bottom.equalTo(view.super);
+    make.width.equalTo(view.super).multipliedBy(widthRatio);
+  };
+}
+
+function applyTimeProgress() {
+  const progress = currentTimeProgress();
+  const label = $("home-progress-label");
+  if (label) label.text = util.monthTimeProgressText(progress);
+  const track = $("home-progress-track");
+  if (track) track.bgcolor = progressTrackColor();
+  const fill = $("home-progress-fill");
+  if (!fill) return;
+  const ratio = progress.ratio > 0 ? progress.ratio : 0;
+  fill.alpha = ratio > 0 ? 1 : 0;
+  if (fill.remakeLayout) fill.remakeLayout(layoutProgressFill(ratio));
+}
+
 function applyTopCard(snap) {
   const ring = $("home-ring-img");
   const remaining = $("home-remaining");
@@ -228,6 +257,7 @@ function applyPreview() {
 
 function refresh() {
   applyTopCard(currentSnap());
+  applyTimeProgress();
   applyPreview();
 }
 
@@ -417,6 +447,7 @@ function usageInfo(snap) {
 function render() {
   const snap = currentSnap();
   const ringImg = drawRingForSnap(snap);
+  const timeProgress = currentTimeProgress();
   const previewItems = previewExpenses();
 
   $ui.render({
@@ -505,6 +536,57 @@ function render() {
                   },
                   {
                     type: "view",
+                    props: { id: "home-progress", bgcolor: $color("clear") },
+                    layout: function(make) {
+                      make.left.right.equalTo();
+                      make.top.equalTo($("home-budget-occ").bottom).offset(12);
+                    },
+                    views: [
+                      {
+                        type: "view",
+                        props: {
+                          id: "home-progress-track",
+                          bgcolor: progressTrackColor(),
+                          radius: 2,
+                          clipsToBounds: true
+                        },
+                        layout: function(make) {
+                          make.left.right.inset(16);
+                          make.top.equalTo();
+                          make.height.equalTo(4);
+                        },
+                        views: [
+                          {
+                            type: "view",
+                            props: {
+                              id: "home-progress-fill",
+                              bgcolor: $color(COLOR_OK),
+                              alpha: timeProgress.ratio > 0 ? 1 : 0
+                            },
+                            layout: layoutProgressFill(timeProgress.ratio)
+                          }
+                        ]
+                      },
+                      {
+                        type: "label",
+                        props: {
+                          id: "home-progress-label",
+                          text: util.monthTimeProgressText(timeProgress),
+                          font: $font(13),
+                          textColor: $color("secondaryLabel"),
+                          align: $align.center,
+                          lines: 1
+                        },
+                        layout: function(make) {
+                          make.left.right.inset(16);
+                          make.top.equalTo($("home-progress-track").bottom).offset(6);
+                          make.bottom.equalTo();
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    type: "view",
                     props: {
                       id: "home-card-sep",
                       bgcolor: $color("separator"),
@@ -512,7 +594,7 @@ function render() {
                     },
                     layout: function(make) {
                       make.left.right.inset(16);
-                      make.top.equalTo($("home-budget-occ").bottom).offset(14);
+                      make.top.equalTo($("home-progress").bottom).offset(12);
                       make.height.equalTo(0.33);
                     }
                   },

@@ -7,6 +7,7 @@ const VERSION = 1;
 function emptyData() {
   return {
     version: VERSION,
+    monthStartDay: 1,
     budgets: [],
     expenses: [],
     installments: [],
@@ -25,6 +26,7 @@ function normalize(raw) {
   if (!raw || typeof raw !== "object") return base;
   return {
     version: VERSION,
+    monthStartDay: util.normalizeMonthStartDay(raw.monthStartDay),
     budgets: Array.isArray(raw.budgets) ? raw.budgets : [],
     expenses: Array.isArray(raw.expenses) ? raw.expenses : [],
     installments: Array.isArray(raw.installments) ? raw.installments : [],

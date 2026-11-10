@@ -3,7 +3,7 @@ const store = require("scripts/store");
 const notePresets = require("scripts/note-presets");
 const calc = require("scripts/calc");
 
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 const PREFS_KEY = "webdav_sync_prefs";
 const META_KEY = "webdav_sync_meta";
 const KEYCHAIN_DOMAIN = "PocketBudget.webdav";
@@ -269,6 +269,7 @@ function buildSnapshot(data, presets, revision, deviceId) {
     revision: String(revision),
     deviceId: deviceId || "",
     version: base.version,
+    monthStartDay: base.monthStartDay,
     budgets: base.budgets,
     expenses: base.expenses,
     installments: base.installments,
@@ -284,7 +285,8 @@ function validateSnapshot(obj) {
   if (!obj || typeof obj !== "object") {
     return { ok: false, message: "快照不是对象" };
   }
-  if (obj.schemaVersion !== 1 && obj.schemaVersion !== "1") {
+  const schema = obj.schemaVersion === undefined || obj.schemaVersion === null ? "" : String(obj.schemaVersion);
+  if (schema !== "1" && schema !== "2") {
     return { ok: false, message: "不支持的 schemaVersion" };
   }
   const imported = store.validateImport(obj);
