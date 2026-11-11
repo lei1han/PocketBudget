@@ -100,11 +100,18 @@ function cumulativeSurplus(data, currentMonth) {
   };
 }
 
+function currentBudgetMonth(data) {
+  return util.yearMonthFromDate(
+    new Date(),
+    util.normalizeMonthStartDay(data && data.monthStartDay)
+  );
+}
+
 function monthSnapshot(data, yearMonth) {
   const budget = effectiveBudget(data, yearMonth);
   const occ = occupied(data, yearMonth);
   const surplus = util.roundMoney(budget - occ.total);
-  const cum = cumulativeSurplus(data, util.currentYearMonth());
+  const cum = cumulativeSurplus(data, currentBudgetMonth(data));
   return {
     yearMonth,
     budget,
@@ -120,7 +127,7 @@ function monthSnapshot(data, yearMonth) {
 
 /** Ensure current month has an explicit budget by carrying previous if needed */
 function ensureCurrentBudget(data) {
-  const ym = util.currentYearMonth();
+  const ym = currentBudgetMonth(data);
   if (hasExplicitBudget(data, ym)) {
     return { data, carried: false, amount: effectiveBudget(data, ym), from: null };
   }
@@ -185,7 +192,7 @@ function addExpense(data, amount, note, atDate) {
     amount: amt,
     note: note ? String(note) : "",
     at: at.toISOString(),
-    yearMonth: util.yearMonthFromDate(at)
+    yearMonth: util.yearMonthFromDate(at, util.normalizeMonthStartDay(data && data.monthStartDay))
   };
   return {
     ok: true,
@@ -256,7 +263,7 @@ function deleteInstallment(data, planId) {
 }
 
 function endInstallment(data, planId) {
-  const current = util.currentYearMonth();
+  const current = currentBudgetMonth(data);
   const plans = (data.installments || []).map(p => {
     if (p.id !== planId) return p;
     return Object.assign({}, p, { status: "ended" });
@@ -274,6 +281,34 @@ function endInstallment(data, planId) {
     ok: true,
     data: Object.assign({}, data, { installments: plans, installmentItems: items })
   };
+}
+
+function setMonthStartDay(data, day) {
+  const raw = String(day === undefined || day === null ? "" : day).trim();
+  if (!/^\d+$/.test(raw)) {
+    return { ok: false, message: "请输入 1 到 31 的整数" };
+  }
+  const n = Number(raw);
+  if (n < 1 || n > 31) {
+    return { ok: false, message: "请输入 1 到 31 的整数" };
+  }
+  const startDay = util.normalizeMonthStartDay(n);
+  let reassigned = 0;
+  const expenses = (data.expenses || []).map(function(e) {
+    const at = new Date(e.at);
+    if (isNaN(at.getTime())) return e;
+    const ym = util.yearMonthFromDate(at, startDay);
+    if (ym === e.yearMonth) return e;
+    reassigned += 1;
+    return Object.assign({}, e, { yearMonth: ym });
+  });
+  let next = Object.assign({}, data, { monthStartDay: startDay, expenses: expenses });
+  const ensured = ensureCurrentBudget(next);
+  next = ensured.data;
+  if (next.monthStartDay !== startDay) {
+    next = Object.assign({}, next, { monthStartDay: startDay });
+  }
+  return { ok: true, data: next, reassigned: reassigned, carried: !!ensured.carried };
 }
 
 function expensesForMonth(data, yearMonth) {
@@ -307,6 +342,7 @@ module.exports = {
   createInstallment,
   deleteInstallment,
   endInstallment,
+  setMonthStartDay,
   expensesForMonth,
   installmentItemsForPlan
 };

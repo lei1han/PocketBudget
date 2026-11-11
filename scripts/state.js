@@ -9,14 +9,19 @@ function getData() {
   return data;
 }
 
+function rememberMonthStart(next) {
+  util.setMonthStartDay(next && next.monthStartDay);
+  return next;
+}
+
 function setDataSilent(next) {
-  data = next;
+  data = rememberMonthStart(next);
   store.save(data);
   return data;
 }
 
 function setData(next) {
-  data = next;
+  data = rememberMonthStart(next);
   store.save(data);
   try {
     require("scripts/webdav-sync").afterLocalSave();
@@ -26,6 +31,7 @@ function setData(next) {
 
 function reload() {
   data = store.load();
+  util.setMonthStartDay(data.monthStartDay);
   bootNotices = [];
   const ensured = calc.ensureCurrentBudget(data);
   if (ensured.carried) {
